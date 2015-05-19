@@ -141,5 +141,39 @@
 		(problema (cria-problema estado-inicial operadores :objectivo? #'estado-objectivo? :heuristica #'heuristica)))
 	(procura problema procura-str)))
 
+
+(defstruct job-shop-state
+   taskSequence
+   machines
+   jobs)
+
+;JobShop Operators
+
+(defun dotask (state)
+	(let 
+		((sucessores '()))
+		(dolist (job (job-shop-state-jobs state))
+				(let* ((newState (copy-job-shop-state state))
+					  (machines (job-shop-state-machines newState))
+					  (taskSequence (job-shop-state-taskSequence newState))
+					  (jobs (job-shop-state-jobs newState))
+					  (newTask (car jobs))
+					  (taskMachine (job-shop-task-machine.nr newTask))
+					  (taskStartTime (job-shop-task-start.time newTask)))
+
+				(progn
+					;update the task startup time
+					(setf taskStartTime (+ taskStartTime (aref machines taskMachine)))
+					;set the new time for the machine array
+					(setf (aref machines taskMachine) taskStartTime)
+					;add the updated task to the sequence of execution
+					(setf taskSequence (cons taskSequence newTask))
+					;;TODO: FALTA REMOVER DOS JOBS NOVOS ESTA TAREFA
+					(setf sucessores (cons sucessores newState)))))))
+
+(defun copy-job-shop-state (state)
+	(make-job-shop-state
+		:machines (copy-array (job-shop-state-machines state))))
+
 ;(resolve-problema (make-array '(20 20)) 'profundidade)
 ;(iterative-probing (cria-problema (make-array '(4 4)) (list #'coloca-rainha) :objectivo? #'estado-objectivo? :heuristica #'heuristica))
