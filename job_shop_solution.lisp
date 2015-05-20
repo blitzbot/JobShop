@@ -43,7 +43,7 @@
 				(when (> k 0)
 					(dolist (sucessor (cdr sucessores))
 						(progn
-							(setf solucao (ilds sucessor k (- depth 1)))
+							(setf solucao (ilds sucessor (- k 1) (- depth 1)))
 							(when (not (null solucao))
 								(return-from ilds solucao))))))))))
 	(loop
