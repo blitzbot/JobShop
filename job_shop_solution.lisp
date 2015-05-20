@@ -153,31 +153,6 @@
 
 
 ;JobShop Operators
-
-; (defun dotask (state)
-; 	(let 
-; 		((sucessores '()))
-; 		(dolist (job (job-shop-state-jobs state))
-; 				(let* ((newState (copy-job-shop-state state))
-; 					  (machines.start.time (job-shop-state-machines.start.time newState))
-; 					  (taskSequence (job-shop-state-taskSequence newState))
-; 					  ;(jobs (job-shop-state-jobs newState))
-; 					  (newTask (car (job-shop-job-tasks job)))
-; 					  (newTaskList (cdr (job-shop-job-tasks job)))
-; 					  (taskMachine (job-shop-task-machine.nr newTask))
-; 					  (taskStartTime (job-shop-task-start.time newTask)))
-
-; 				(progn
-; 					;update the task startup time
-; 					(setf taskStartTime (+ taskStartTime (aref machines.start.time taskMachine)))
-; 					;set the new time for the machine array
-; 					(setf (aref machines.start.time taskMachine) taskStartTime)
-; 					;add the updated task to the sequence of execution
-; 					(setf taskSequence (cons newTask taskSequence))
-; 					(setf (job-shop-job-tasks (job-shop-state-jobs newState)) newTaskList)
-; 					(setf sucessores (cons newState sucessores)))))))
-
-
 (defun dotask (state)
 	(let ((sucessores '()))
 		(dotimes (i (length (job-shop-state-jobs state)))
@@ -208,6 +183,12 @@
 							(cons newTask (job-shop-state-taskSequence newState)))
 						(setf sucessores (cons newState sucessores))))))
 		sucessores))
+
+(defun estado-objectivo (state)
+	(dolist (job (job-shop-state-jobs state))
+		(when (not (job-shop-job-tasks))
+			(return-from estado-objectivo NIL)))
+	t)
 
 (defstruct job-shop-state
    taskSequence
