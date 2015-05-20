@@ -142,38 +142,127 @@
 	(procura problema procura-str)))
 
 
-(defstruct job-shop-state
-   taskSequence
-   machines
-   jobs)
+
+(defun cria-estado-inicial (estado)
+	(make-job-shop-state
+		:taskSequence '()
+		:machines.start.time (make-array (job-shop-problem-n.machines estado) :initial-element 0)
+		:jobs (job-shop-problem-jobs estado)
+		:jobs.start.time (make-array (job-shop-problem-n.jobs estado) :initial-element 0)))
+
+
 
 ;JobShop Operators
 
-(defun dotask (state)
-	(let 
-		((sucessores '()))
-		(dolist (job (job-shop-state-jobs state))
-				(let* ((newState (copy-job-shop-state state))
-					  (machines (job-shop-state-machines newState))
-					  (taskSequence (job-shop-state-taskSequence newState))
-					  (jobs (job-shop-state-jobs newState))
-					  (newTask (car jobs))
-					  (taskMachine (job-shop-task-machine.nr newTask))
-					  (taskStartTime (job-shop-task-start.time newTask)))
+; (defun dotask (state)
+; 	(let 
+; 		((sucessores '()))
+; 		(dolist (job (job-shop-state-jobs state))
+; 				(let* ((newState (copy-job-shop-state state))
+; 					  (machines.start.time (job-shop-state-machines.start.time newState))
+; 					  (taskSequence (job-shop-state-taskSequence newState))
+; 					  ;(jobs (job-shop-state-jobs newState))
+; 					  (newTask (car (job-shop-job-tasks job)))
+; 					  (newTaskList (cdr (job-shop-job-tasks job)))
+; 					  (taskMachine (job-shop-task-machine.nr newTask))
+; 					  (taskStartTime (job-shop-task-start.time newTask)))
 
-				(progn
-					;update the task startup time
-					(setf taskStartTime (+ taskStartTime (aref machines taskMachine)))
-					;set the new time for the machine array
-					(setf (aref machines taskMachine) taskStartTime)
-					;add the updated task to the sequence of execution
-					(setf taskSequence (cons taskSequence newTask))
-					;;TODO: FALTA REMOVER DOS JOBS NOVOS ESTA TAREFA
-					(setf sucessores (cons sucessores newState)))))))
+; 				(progn
+; 					;update the task startup time
+; 					(setf taskStartTime (+ taskStartTime (aref machines.start.time taskMachine)))
+; 					;set the new time for the machine array
+; 					(setf (aref machines.start.time taskMachine) taskStartTime)
+; 					;add the updated task to the sequence of execution
+; 					(setf taskSequence (cons newTask taskSequence))
+; 					(setf (job-shop-job-tasks (job-shop-state-jobs newState)) newTaskList)
+; 					(setf sucessores (cons newState sucessores)))))))
+
+
+(defun dotask (state)
+	(let ((sucessores '()))
+		(dotimes (i (length (job-shop-state-jobs state)))
+			(let ((job (nth i (job-shop-state-jobs state))))
+				(when (not (null (job-shop-job-tasks job)))
+					(let* (
+						; copia do estado que ira passar para o proximo no
+						(newState (copy-job-shop-state state))
+						; lista de tarefas actuais
+						(newStateJob (nth i (job-shop-state-jobs state)))
+						; tarefa a colocar na sequencia de tarefas
+						(newTask (car (job-shop-job-tasks newStateJob)))
+						(m.start.time (job-shop-state-machines.start.time newState))
+						(jobs.start.time (job-shop-state-jobs.start.time newState))
+						; qual e' o tempo de inicio?
+						(start.time (max
+							(aref m.start.time (job-shop-task-machine.nr newTask))
+							(aref jobs.start.time (job-shop-task-job.nr newTask))))
+						(new.time (+ start.time (job-shop-task-duration newTask))))
+
+						; remover primeira tarefa do job
+						(setf newState (pop-task newState i))
+						(setf (job-shop-task-start.time newTask) start.time)
+						(setf (aref m.start.time (job-shop-task-machine.nr newTask)) new.time)
+						(setf (aref jobs.start.time (job-shop-task-job.nr newTask)) new.time)
+						; TODO: append em vez de cons?
+						(setf (job-shop-state-taskSequence newState)
+							(cons newTask (job-shop-state-taskSequence newState)))
+						(setf sucessores (cons newState sucessores))))))
+		sucessores))
+
+(defstruct job-shop-state
+   taskSequence
+   machines.start.time
+   jobs
+   jobs.start.time)
+
+(setf a (make-job-shop-state
+		:taskSequence '()
+		:machines.start.time (make-array 2 :initial-element 0)
+		:jobs (list (make-job-shop-job
+			:job.nr 0
+			:tasks (list 
+				(make-job-shop-task :job.nr 0
+ 					:task.nr 0 :machine.nr 1 :duration 12 :start.time NIL)
+				(make-job-shop-task :job.nr 0
+ 					:task.nr 1 :machine.nr 0 :duration 68 :start.time NIL)))
+			(make-job-shop-job
+				:job.nr 1
+				:tasks (list
+					(make-job-shop-task :job.nr 1
+ 					:task.nr 0 :machine.nr 1 :duration 5 :start.time NIL)
+				(make-job-shop-task :job.nr 1
+ 					:task.nr 1 :machine.nr 0 :duration 5 :start.time NIL))))
+		:jobs.start.time (make-array 2 :initial-element 0)))
+
+(defun pop-task (state job.index)
+	(setf (job-shop-job-tasks (nth job.index (job-shop-state-jobs state))) 
+		(cdr (job-shop-job-tasks (nth job.index (job-shop-state-jobs state)))))
+	state)
 
 (defun copy-job-shop-state (state)
+	(let ((taskSequence (copy-list (job-shop-state-taskSequence state)))
+		  (jobs (copy-list (job-shop-state-jobs state))))
 	(make-job-shop-state
-		:machines (copy-array (job-shop-state-machines state))))
+		:taskSequence (mapcar #'copy-job-shop-task taskSequence)
+		:machines.start.time (copy-array (job-shop-state-machines.start.time state))
+		:jobs (mapcar #'copy-job-shop-job jobs)
+		:jobs.start.time (copy-array (job-shop-state-jobs.start.time state)))))
+
+(defun copy-job-shop-job (job)
+	(let ((tasks (copy-list (job-shop-job-tasks job))))
+		(make-job-shop-job
+			:job.nr (job-shop-job-job.nr job)
+			:tasks (mapcar #'copy-job-shop-task tasks))))
+	
+
+(defun copy-job-shop-task (task)
+	(make-job-shop-task
+		:job.nr (job-shop-task-job.nr task)
+		:task.nr (job-shop-task-task.nr task)
+		:machine.nr (job-shop-task-machine.nr task)
+		:duration (job-shop-task-duration task)
+		:start.time (job-shop-task-start.time task)))
+
 
 ;(resolve-problema (make-array '(20 20)) 'profundidade)
 ;(iterative-probing (cria-problema (make-array '(4 4)) (list #'coloca-rainha) :objectivo? #'estado-objectivo? :heuristica #'heuristica))
