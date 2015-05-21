@@ -39,8 +39,8 @@
 		(if (or (null estado) (funcall objectivo? estado))
 			estado
 			(let ((sucessores (problema-gera-sucessores problema estado)))
-				(setf sucessores (ordena-sucessores sucessores (problema-heuristica problema)))
-				(format t "~S~%" (mapcar (problema-heuristica problema) sucessores))
+				;(setf sucessores (ordena-sucessores sucessores (problema-heuristica problema)))
+				;(format t "~S~%" (mapcar (problema-heuristica problema) sucessores))
 				(when (> depth k)
 					(progn
 						(setf solucao (ilds (car sucessores) k (- depth 1)))
@@ -67,13 +67,6 @@
 		(dolist (job (job-shop-state-jobs state))
 			(setf totalTasks (+ totalTasks (length (job-shop-job-tasks jobs)))))
 		totalTasks))
-
-(defun cria-estado-inicial (estado)
-	(make-job-shop-state
-		:taskSequence '()
-		:machines.start.time (make-array (job-shop-problem-n.machines estado) :initial-element 0)
-		:jobs (job-shop-problem-jobs estado)
-		:jobs.start.time (make-array (job-shop-problem-n.jobs estado) :initial-element 0)))
 
 ;JobShop Operators
 (defun dotask (state)
@@ -109,7 +102,7 @@
 
 (defun estado-objectivo (state)
 	(dolist (job (job-shop-state-jobs state))
-		(when (not (job-shop-job-tasks state))
+		(when (not (null (job-shop-job-tasks job)))
 			(return-from estado-objectivo NIL)))
 	t)
 
@@ -144,6 +137,17 @@
 						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 3 :MACHINE.NR 0 :DURATION 9 :START.TIME NIL)
 						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 4 :MACHINE.NR 1 :DURATION 1 :START.TIME NIL)
 						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 5 :MACHINE.NR 4 :DURATION 7 :START.TIME NIL))))))
+
+(setf b (make-job-shop-problem
+    :name "mt06"
+    :n.jobs 3
+    :n.machines 6
+    :jobs (list (MAKE-JOB-SHOP-JOB :JOB.NR 0
+				   :TASKS '())
+				(MAKE-JOB-SHOP-JOB :JOB.NR 1
+				   :TASKS '())
+				(MAKE-JOB-SHOP-JOB :JOB.NR 2
+				   :TASKS '()))))
 
 (defun cria-estado (problema)
 	(make-job-shop-state
@@ -312,3 +316,4 @@
 
 ;(improved-lds (cria-problema (make-array '(4 4)) (list #'coloca-rainha) :objectivo? #'estado-objectivo? :heuristica #'heuristica))
 ;(iterative-sampling (cria-problema (make-array '(4 4)) (list #'coloca-rainha) :objectivo? #'estado-objectivo? :heuristica #'heuristica))
+;(iterative-sampling (cria-problema a (list #'dotask) :objectivo? #'estado-objectivo))
