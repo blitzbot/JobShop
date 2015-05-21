@@ -3,7 +3,7 @@
 (load (compile-file "procura.lisp"))
 (load (compile-file "job-shop-problemas-modelos.lisp"))
 
-(defun iterative-sampling (problema)
+(defun sondagem-iterativa (problema)
 	"Algoritmo de sondagem iterativa
 	retorna primeira solucao encontrada"
 	(let ((objectivo? (problema-objectivo? problema))
@@ -72,7 +72,7 @@
 		totalTasks))
 
 ;JobShop Operators
-(defun dotask (state)
+(defun operador (state)
 	(let ((sucessores '()))
 		(dotimes (i (length (job-shop-state-jobs state)))
 			(let ((job (nth i (job-shop-state-jobs state))))
@@ -183,5 +183,5 @@
 ;(resolve-problema (make-array '(20 20)) 'profundidade)
 
 ;(improved-lds (cria-problema (make-array '(4 4)) (list #'coloca-rainha) :objectivo? #'estado-objectivo? :heuristica #'heuristica))
-;(iterative-sampling (cria-problema (cria-estado a) (list #'dotask) :objectivo? #'estado-objectivo))
-;(improved-lds (cria-problema (cria-estado a) (list #'dotask) :objectivo? #'estado-objectivo :heuristica #'heuristica) 4)
+;(sondagem-iterativa (cria-problema (cria-estado a) (list #'operador) :objectivo? #'estado-objectivo))
+;(improved-lds (cria-problema (cria-estado a) (list #'operador) :objectivo? #'estado-objectivo :heuristica #'heuristica) 4)
