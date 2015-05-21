@@ -39,8 +39,9 @@
 		(if (or (null estado) (funcall objectivo? estado))
 			estado
 			(let ((sucessores (problema-gera-sucessores problema estado)))
+				;(format t "~S~%" sucessores)
 				;(setf sucessores (ordena-sucessores sucessores (problema-heuristica problema)))
-				;(format t "~S~%" (mapcar (problema-heuristica problema) sucessores))
+				
 				(when (> depth k)
 					(progn
 						(setf solucao (ilds (car sucessores) k (- depth 1)))
@@ -59,7 +60,7 @@
 			(incf k))))))
 
 (defun ordena-sucessores (sucessores heuristica)
-	(sort sucessores #'(lambda (x y) (< (funcall #'heuristica x) (funcall #'heuristica y)))))
+	(sort sucessores #'(lambda (x y) (< (funcall heuristica x) (funcall heuristica y)))))
 
 
 (defun total-tasks (state)
@@ -88,7 +89,6 @@
 							(aref m.start.time (job-shop-task-machine.nr newTask))
 							(aref jobs.start.time (job-shop-task-job.nr newTask))))
 						(new.time (+ start.time (job-shop-task-duration newTask))))
-
 						; remover primeira tarefa do job
 						(setf newState (pop-task newState i))
 						(setf (job-shop-task-start.time newTask) start.time)
@@ -114,29 +114,14 @@
 
 (setf a (make-job-shop-problem
     :name "mt06"
-    :n.jobs 3
-    :n.machines 6
+    :n.jobs 2
+    :n.machines 2
     :jobs (list (MAKE-JOB-SHOP-JOB :JOB.NR 0
-				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 0 :MACHINE.NR 2 :DURATION 1 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 1 :MACHINE.NR 0 :DURATION 3 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 2 :MACHINE.NR 1 :DURATION 6 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 3 :MACHINE.NR 3 :DURATION 7 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 4 :MACHINE.NR 5 :DURATION 3 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 5 :MACHINE.NR 4 :DURATION 6 :START.TIME NIL)))
+				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 0 :MACHINE.NR 1 :DURATION 12 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 1 :MACHINE.NR 0 :DURATION 68 :START.TIME NIL)))
 		(MAKE-JOB-SHOP-JOB :JOB.NR 1
-				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 0 :MACHINE.NR 1 :DURATION 8 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 1 :MACHINE.NR 2 :DURATION 5 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 2 :MACHINE.NR 4 :DURATION 10 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 3 :MACHINE.NR 5 :DURATION 10 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 4 :MACHINE.NR 0 :DURATION 10 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 5 :MACHINE.NR 3 :DURATION 4 :START.TIME NIL)))
-		(MAKE-JOB-SHOP-JOB :JOB.NR 2
-				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 0 :MACHINE.NR 2 :DURATION 5 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 1 :MACHINE.NR 3 :DURATION 4 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 2 :MACHINE.NR 5 :DURATION 8 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 3 :MACHINE.NR 0 :DURATION 9 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 4 :MACHINE.NR 1 :DURATION 1 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 5 :MACHINE.NR 4 :DURATION 7 :START.TIME NIL))))))
+				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 0 :MACHINE.NR 0 :DURATION 5 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 1 :MACHINE.NR 1 :DURATION 5 :START.TIME NIL))))))
 
 (setf b (make-job-shop-problem
     :name "mt06"
@@ -316,4 +301,4 @@
 
 ;(improved-lds (cria-problema (make-array '(4 4)) (list #'coloca-rainha) :objectivo? #'estado-objectivo? :heuristica #'heuristica))
 ;(iterative-sampling (cria-problema (make-array '(4 4)) (list #'coloca-rainha) :objectivo? #'estado-objectivo? :heuristica #'heuristica))
-;(iterative-sampling (cria-problema a (list #'dotask) :objectivo? #'estado-objectivo))
+;(iterative-sampling (cria-problema (cria-estado a) (list #'dotask) :objectivo? #'estado-objectivo))
