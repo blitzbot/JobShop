@@ -4,7 +4,11 @@
 (load "job-shop-problemas-modelos.lisp")
 
 (defun iterative-sampling (problema)
-	(let ((objectivo? (problema-objectivo? problema)))
+	"Algoritmo de sondagem iterativa
+	retorna primeira solucao encontrada"
+	(let ((objectivo? (problema-objectivo? problema))
+		  (*nos-gerados* 0)
+		  (*nos-expandidos* 0))
 		;procura sonda
 		(labels ((procura-sonda (estado)
 			; se chegamos a funcao objectivo devolvemos o estado
@@ -23,18 +27,20 @@
 				(return solucao))))))
 
 ;Paper: http://aaaipress.org/Papers/AAAI/1996/AAAI96-043.pdf
-(defun improved-lds(problema)
+(defun improved-lds(problema depth)
+	"Algoritmo ILDS"
 	(let ((objectivo? (problema-objectivo? problema))
 		  (k 0)
-		  (depth (total-tasks (problema-estado-inicial problema)))
-		  ;TO REMOVE
-		  (nos-gerados nil)
-		  (nos-expandidos nil))
+		  ;(depth (total-tasks (problema-estado-inicial problema)))
+		  (*nos-gerados* 0)
+		  (*nos-expandidos* 0))
 
-	(labels ((ilds (node k depth)
-		(if (funcall objectivo? node)
-			node
+	(labels ((ilds (estado k depth)
+		(if (or (null estado) (funcall objectivo? estado))
+			estado
 			(let ((sucessores (problema-gera-sucessores problema estado)))
+				(setf sucessores (ordena-sucessores sucessores (problema-heuristica problema)))
+				(format t "~S~%" (mapcar (problema-heuristica problema) sucessores))
 				(when (> depth k)
 					(progn
 						(setf solucao (ilds (car sucessores) k (- depth 1)))
@@ -48,9 +54,12 @@
 								(return-from ilds solucao))))))))))
 	(loop
 		(setf solucao (ilds (problema-estado-inicial problema) k depth))
-		(if (not (null solucao)
+		(if (not (null solucao))
 			(return solucao)
-			(incf k)))))))
+			(incf k))))))
+
+(defun ordena-sucessores (sucessores heuristica)
+	(sort sucessores #'(lambda (x y) (< (funcall #'heuristica x) (funcall #'heuristica y)))))
 
 
 (defun total-tasks (state)
