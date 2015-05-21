@@ -65,7 +65,7 @@
 (defun total-tasks (state)
 	(let ((totalTasks 0))
 		(dolist (job (job-shop-state-jobs state))
-			(setf totalTasks (+ totalTasks (length (job-shop-job tasks)))))
+			(setf totalTasks (+ totalTasks (length (job-shop-job-tasks job)))))
 		totalTasks))
 
 (defun cria-estado-inicial (estado)
@@ -109,34 +109,48 @@
 
 (defun estado-objectivo (state)
 	(dolist (job (job-shop-state-jobs state))
-		(when (not (job-shop-job-tasks))
+		(when (not (job-shop-job-tasks state))
 			(return-from estado-objectivo NIL)))
 	t)
 
 (defstruct job-shop-state
    taskSequence
    machines.start.time
-   jobs
-   jobs.start.time)
+   jobs.start.time
+   jobs)
 
-(setf a (make-job-shop-state
+(setf a (make-job-shop-problem
+    :name "mt06"
+    :n.jobs 3
+    :n.machines 6
+    :jobs (list (MAKE-JOB-SHOP-JOB :JOB.NR 0
+				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 0 :MACHINE.NR 2 :DURATION 1 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 1 :MACHINE.NR 0 :DURATION 3 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 2 :MACHINE.NR 1 :DURATION 6 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 3 :MACHINE.NR 3 :DURATION 7 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 4 :MACHINE.NR 5 :DURATION 3 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 5 :MACHINE.NR 4 :DURATION 6 :START.TIME NIL)))
+		(MAKE-JOB-SHOP-JOB :JOB.NR 1
+				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 0 :MACHINE.NR 1 :DURATION 8 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 1 :MACHINE.NR 2 :DURATION 5 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 2 :MACHINE.NR 4 :DURATION 10 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 3 :MACHINE.NR 5 :DURATION 10 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 4 :MACHINE.NR 0 :DURATION 10 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 5 :MACHINE.NR 3 :DURATION 4 :START.TIME NIL)))
+		(MAKE-JOB-SHOP-JOB :JOB.NR 2
+				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 0 :MACHINE.NR 2 :DURATION 5 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 1 :MACHINE.NR 3 :DURATION 4 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 2 :MACHINE.NR 5 :DURATION 8 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 3 :MACHINE.NR 0 :DURATION 9 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 4 :MACHINE.NR 1 :DURATION 1 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 5 :MACHINE.NR 4 :DURATION 7 :START.TIME NIL))))))
+
+(defun cria-estado (problema)
+	(make-job-shop-state
 		:taskSequence '()
-		:machines.start.time (make-array 2 :initial-element 0)
-		:jobs (list (make-job-shop-job
-			:job.nr 0
-			:tasks (list 
-				(make-job-shop-task :job.nr 0
- 					:task.nr 0 :machine.nr 1 :duration 12 :start.time NIL)
-				(make-job-shop-task :job.nr 0
- 					:task.nr 1 :machine.nr 0 :duration 68 :start.time NIL)))
-			(make-job-shop-job
-				:job.nr 1
-				:tasks (list
-					(make-job-shop-task :job.nr 1
- 					:task.nr 0 :machine.nr 1 :duration 5 :start.time NIL)
-				(make-job-shop-task :job.nr 1
- 					:task.nr 1 :machine.nr 0 :duration 5 :start.time NIL))))
-		:jobs.start.time (make-array 2 :initial-element 0)))
+		:machines.start.time (make-array (job-shop-problem-n.machines problema) :initial-element 0)
+		:jobs.start.time (make-array (job-shop-problem-n.jobs problema) :initial-element 0)
+		:jobs (job-shop-problem-jobs problema)))
 
 (defun pop-task (state job.index)
 	(setf (job-shop-job-tasks (nth job.index (job-shop-state-jobs state))) 
