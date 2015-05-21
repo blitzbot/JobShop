@@ -42,7 +42,7 @@
 			estado
 			(let ((sucessores (problema-gera-sucessores problema estado)))
 				;(format t "~S~%" sucessores)
-				;(setf sucessores (ordena-sucessores sucessores (problema-heuristica problema)))
+				(setf sucessores (ordena-sucessores sucessores (problema-heuristica problema)))
 				
 				(when (> depth k)
 					(progn
@@ -108,6 +108,14 @@
 			(return-from estado-objectivo NIL)))
 	t)
 
+(defun heuristica (state)
+	(let ((max 0))
+		(dotimes (i (array-dimension (job-shop-state-machines.start.time state) 0))
+			(let ((value (aref (job-shop-state-machines.start.time state) i)))
+				(when (> value max)
+					(setf max value))))
+		max))
+
 (defstruct job-shop-state
    taskSequence
    machines.start.time
@@ -172,135 +180,8 @@
 		:duration (job-shop-task-duration task)
 		:start.time (job-shop-task-start.time task)))
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;RAINHAS
-
-
-(defstruct posicao
-	x
-	y)
-
-(defun estado-objectivo? (tabuleiro)
-	(let ((nQueens 0)
-		(foundQueen nil))
-	(progn
-		(dotimes (i (array-dimension tabuleiro 0))
-			(progn
-				(setf foundQueen nil)
-				(dotimes (j (array-dimension tabuleiro 1))
-					(when (equal (aref tabuleiro i j) "T")
-						(progn
-							(setf foundQueen 1)
-							(incf nQueens)
-							(return))))
-				(when (not foundQueen)
-					(return-from estado-objectivo? nil))))
-		(= nQueens (array-dimension tabuleiro 0)))))
-
-(defun ameaca? (rainha1-pos rainha2-pos)
-	(or (= (posicao-x rainha1-pos) (posicao-x rainha2-pos))
-		(= (posicao-y rainha1-pos) (posicao-y rainha2-pos))
-		(= (- (posicao-x rainha1-pos) (posicao-y rainha1-pos)) (- (posicao-x rainha2-pos) (posicao-y rainha2-pos)))
-		(= (+ (posicao-x rainha1-pos) (posicao-y rainha1-pos)) (+ (posicao-x rainha2-pos) (posicao-y rainha2-pos)))))
-
-(defun imprime-tabuleiro (tabuleiro)
-	(dotimes (i (array-dimension tabuleiro 0))
-		(progn
-			(format t "~%")
-			(dotimes (j (array-dimension tabuleiro 1))
-				(format t "~a "(aref tabuleiro i j))))))
-
-;Heuristica - numero de casas livres para jogar a proxima rainha
-(defun heuristica (tabuleiro)
-	(let ((casas-atacadas 0)
-		(rainhas '())
-		(foundQueen nil)
-		(startLine 0)
-		(nlinhas (array-dimension tabuleiro 0)))
-
-	(progn
-		(when (estado-objectivo? tabuleiro)
-			(return-from heuristica 0))
-
-		;Procurar a linha a inserir
-		(dotimes (i (array-dimension tabuleiro 0))
-			(progn
-				(setf foundQueen nil)
-				(dotimes (j (array-dimension tabuleiro 1))
-					(if (equal (aref tabuleiro i j) "T")
-						(progn 
-							(incf startLine)
-							(setf rainhas (cons (make-posicao :x i :y j) rainhas))
-							(setf foundQueen 1)
-							(return))))
-				(when (not foundQueen)
-					(return))))
-		
-		;Contar o numero de casas livres a partir da linha
-		(loop for i from startLine to (- nlinhas 1) do
-			(dotimes (j (array-dimension tabuleiro 1))
-				(dolist (rainha rainhas)
-					(when (ameaca? (make-posicao :x i :y j) rainha)
-						(progn
-							(incf casas-atacadas)
-							(return))))))
-		(let ((casas-totais (* (- nlinhas startLine) (array-dimension tabuleiro 1))))
-			(return-from heuristica (- casas-totais casas-atacadas))))))
-
-
-;Operador
-(defun coloca-rainha (tabuleiro)
-	(let* ((rainhas '())
-		(sucessores '())
-		(linha-a-inserir 0)
-		(foundQueen nil))
-
-	(progn
-		;Procurar a linha a inserir
-		(dotimes (i (array-dimension tabuleiro 0))
-			(progn
-				(setf foundQueen nil)
-				(dotimes (j (array-dimension tabuleiro 1))
-					(if (equal (aref tabuleiro i j) "T")
-						(progn 
-							(incf linha-a-inserir)
-							(setf rainhas (cons (make-posicao :x i :y j) rainhas))
-							(setf foundQueen 1)
-							(return))))
-				(when (not foundQueen)
-					(return))))
-		;Procurar a coluna a inserir
-		(if rainhas
-			(dotimes (j (array-dimension tabuleiro 1))
-				(progn
-					(let ((ameaca nil))
-						(dolist (rainha rainhas)
-							(when (ameaca? (make-posicao :x linha-a-inserir :y j) rainha)
-								(progn
-									(setf ameaca 1)
-									(return))))
-						(when (not ameaca)
-							(let ((tabuleiro-copia (copy-array tabuleiro)))
-								(progn
-									(setf (aref tabuleiro-copia linha-a-inserir j) "T")
-									(setf sucessores (cons tabuleiro-copia sucessores))))))))
-			(dotimes (j (array-dimension tabuleiro 1))
-				(let ((tabuleiro-copia (copy-array tabuleiro)))
-					(progn
-						(setf (aref tabuleiro-copia linha-a-inserir j) "T")
-						(setf sucessores (cons tabuleiro-copia sucessores))))))
-		sucessores)))
-
-(defun resolve-problema (estado-inicial procura-str)
-	(let* ((operadores (list #'coloca-rainha))
-		(problema (cria-problema estado-inicial operadores :objectivo? #'estado-objectivo? :heuristica #'heuristica)))
-	(procura problema procura-str)))
-
-
 ;(resolve-problema (make-array '(20 20)) 'profundidade)
 
 ;(improved-lds (cria-problema (make-array '(4 4)) (list #'coloca-rainha) :objectivo? #'estado-objectivo? :heuristica #'heuristica))
-;(iterative-sampling (cria-problema (make-array '(4 4)) (list #'coloca-rainha) :objectivo? #'estado-objectivo? :heuristica #'heuristica))
 ;(iterative-sampling (cria-problema (cria-estado a) (list #'dotask) :objectivo? #'estado-objectivo))
+;(improved-lds (cria-problema (cria-estado a) (list #'dotask) :objectivo? #'estado-objectivo :heuristica #'heuristica) 4)
