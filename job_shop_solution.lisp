@@ -1,14 +1,15 @@
-(in-package :user)
+;(in-package :user)
 
-(load "procura.lisp")
-(load "job-shop-problemas-modelos.lisp")
+(load (compile-file "procura.lisp"))
+(load (compile-file "job-shop-problemas-modelos.lisp"))
 
 (defun iterative-sampling (problema)
 	"Algoritmo de sondagem iterativa
 	retorna primeira solucao encontrada"
 	(let ((objectivo? (problema-objectivo? problema))
 		  (*nos-gerados* 0)
-		  (*nos-expandidos* 0))
+		  (*nos-expandidos* 0)
+		  (solucao nil))
 		;procura sonda
 		(labels ((procura-sonda (estado)
 			; se chegamos a funcao objectivo devolvemos o estado
@@ -33,7 +34,8 @@
 		  (k 0)
 		  ;(depth (total-tasks (problema-estado-inicial problema)))
 		  (*nos-gerados* 0)
-		  (*nos-expandidos* 0))
+		  (*nos-expandidos* 0)
+		  (solucao nil))
 
 	(labels ((ilds (estado k depth)
 		(if (or (null estado) (funcall objectivo? estado))
@@ -66,7 +68,7 @@
 (defun total-tasks (state)
 	(let ((totalTasks 0))
 		(dolist (job (job-shop-state-jobs state))
-			(setf totalTasks (+ totalTasks (length (job-shop-job-tasks jobs)))))
+			(setf totalTasks (+ totalTasks (length (job-shop-job-tasks job)))))
 		totalTasks))
 
 ;JobShop Operators
@@ -77,7 +79,7 @@
 				(when (not (null (job-shop-job-tasks job)))
 					(let* (
 						; copia do estado que ira passar para o proximo no
-						(newState (copy-job-shop-state state))
+						(newState (copia-job_shop_state state))
 						; lista de tarefas actuais
 						(newStateJob (nth i (job-shop-state-jobs state)))
 						; tarefa a colocar na sequencia de tarefas
@@ -146,7 +148,7 @@
 		(cdr (job-shop-job-tasks (nth job.index (job-shop-state-jobs state)))))
 	state)
 
-(defun copy-job-shop-state (state)
+(defun copia-job_shop_state (state)
 	(let ((taskSequence (copy-list (job-shop-state-taskSequence state)))
 		  (jobs (copy-list (job-shop-state-jobs state))))
 	(make-job-shop-state
