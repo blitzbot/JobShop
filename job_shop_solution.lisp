@@ -97,8 +97,8 @@
 						(setf (aref m.start.time (job-shop-task-machine.nr newTask)) new.time)
 						(setf (aref jobs.start.time (job-shop-task-job.nr newTask)) new.time)
 						; TODO: append em vez de cons?
-						(setf (job-shop-state-taskSequence newState)
-							(cons newTask (job-shop-state-taskSequence newState)))
+						(setf (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask))
+							(nconc (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask)) (list newTask)))
 						(setf sucessores (cons newState sucessores))))))
 		sucessores))
 
@@ -146,7 +146,7 @@
 
 (defun cria-estado (problema)
 	(make-job-shop-state
-		:taskSequence '()
+		:taskSequence (make-array (job-shop-problem-n.jobs problema) :initial-element '())
 		:machines.start.time (make-array (job-shop-problem-n.machines problema) :initial-element 0)
 		:jobs.start.time (make-array (job-shop-problem-n.jobs problema) :initial-element 0)
 		:jobs (job-shop-problem-jobs problema)))
@@ -157,20 +157,24 @@
 	state)
 
 (defun copia-job_shop_state (state)
-	(let ((taskSequence (copy-list (job-shop-state-taskSequence state)))
-		  (jobs (copy-list (job-shop-state-jobs state))))
-	(make-job-shop-state
-		:taskSequence (mapcar #'copia-job_shop_task taskSequence)
-		:machines.start.time (copy-array (job-shop-state-machines.start.time state))
-		:jobs (mapcar #'copia-job_shop_job jobs)
-		:jobs.start.time (copy-array (job-shop-state-jobs.start.time state)))))
+	(let ((jobs (copy-list (job-shop-state-jobs state))))
+		(make-job-shop-state
+			:taskSequence (copia-job_task_sequence (job-shop-state-taskSequence state))
+			:machines.start.time (copy-array (job-shop-state-machines.start.time state))
+			:jobs (mapcar #'copia-job_shop_job jobs)
+			:jobs.start.time (copy-array (job-shop-state-jobs.start.time state)))))
 
 (defun copia-job_shop_job (job)
 	(let ((tasks (copy-list (job-shop-job-tasks job))))
 		(make-job-shop-job
 			:job.nr (job-shop-job-job.nr job)
 			:tasks (mapcar #'copia-job_shop_task tasks))))
-	
+
+(defun copia-job_task_sequence (taskSequence)
+	(let ((taskSequenceCopy (copy-array taskSequence)))
+		(dotimes (i (array-dimension taskSequenceCopy 0))
+			(setf (aref taskSequenceCopy i) (mapcar #'copia-job_shop_task (aref taskSequenceCopy i))))
+		taskSequenceCopy))
 
 (defun copia-job_shop_task (task)
 	(make-job-shop-task
