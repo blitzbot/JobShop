@@ -65,7 +65,7 @@
 (defun total-tasks (state)
 	(let ((totalTasks 0))
 		(dolist (job (job-shop-state-jobs state))
-			(setf totalTasks (+ totalTasks (length (job-shop-job-tasks job)))))
+			(setf totalTasks (+ totalTasks (length (job-shop-job-tasks jobs)))))
 		totalTasks))
 
 (defun cria-estado-inicial (estado)
