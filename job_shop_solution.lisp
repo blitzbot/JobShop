@@ -152,19 +152,19 @@
 	(let ((taskSequence (copy-list (job-shop-state-taskSequence state)))
 		  (jobs (copy-list (job-shop-state-jobs state))))
 	(make-job-shop-state
-		:taskSequence (mapcar #'copy-job-shop-task taskSequence)
+		:taskSequence (mapcar #'copia-job_shop_task taskSequence)
 		:machines.start.time (copy-array (job-shop-state-machines.start.time state))
-		:jobs (mapcar #'copy-job-shop-job jobs)
+		:jobs (mapcar #'copia-job_shop_job jobs)
 		:jobs.start.time (copy-array (job-shop-state-jobs.start.time state)))))
 
-(defun copy-job-shop-job (job)
+(defun copia-job_shop_job (job)
 	(let ((tasks (copy-list (job-shop-job-tasks job))))
 		(make-job-shop-job
 			:job.nr (job-shop-job-job.nr job)
-			:tasks (mapcar #'copy-job-shop-task tasks))))
+			:tasks (mapcar #'copia-job_shop_task tasks))))
 	
 
-(defun copy-job-shop-task (task)
+(defun copia-job_shop_task (task)
 	(make-job-shop-task
 		:job.nr (job-shop-task-job.nr task)
 		:task.nr (job-shop-task-task.nr task)
