@@ -3,6 +3,12 @@
 (load (compile-file "procura.lisp"))
 (load (compile-file "job-shop-problemas-modelos.lisp"))
 
+(defstruct job-shop-state
+   taskSequence
+   machines.start.time
+   jobs.start.time
+   jobs)
+
 (defun sondagem-iterativa (problema)
 	"Algoritmo de sondagem iterativa
 	retorna primeira solucao encontrada"
@@ -46,6 +52,8 @@
 				
 				(when (> depth k)
 					(progn
+						; TODO: devia retornar o que quer que encontrasse
+						; ver melhor
 						(setf solucao (ilds (car sucessores) k (- depth 1)))
 						(when (not (null solucao))
 							(return-from ilds solucao)))
@@ -62,6 +70,7 @@
 			(incf k))))))
 
 (defun ordena-sucessores (sucessores heuristica)
+	"Ordena sucessores segundo a heuristica passada"
 	(sort sucessores #'(lambda (x y) (< (funcall heuristica x) (funcall heuristica y)))))
 
 
@@ -108,41 +117,30 @@
 			(return-from estado-objectivo NIL)))
 	t)
 
-(defun heuristica (state)
+(defun heuristica (estado)
 	(let ((max 0))
-		(dotimes (i (array-dimension (job-shop-state-machines.start.time state) 0))
-			(let ((value (aref (job-shop-state-machines.start.time state) i)))
-				(when (> value max)
-					(setf max value))))
+		(dotimes (i (array-dimension (job-shop-state-machines.start.time estado) 0))
+			(let ((valor (aref (job-shop-state-machines.start.time estado) i)))
+				(when (> valor max)
+					(setf max valor))))
 		max))
 
-(defstruct job-shop-state
-   taskSequence
-   machines.start.time
-   jobs.start.time
-   jobs)
+(defun heuristica-alternativa (estado)
+	"heuristica optimista:
 
-(setf a (make-job-shop-problem
-    :name "mt06"
-    :n.jobs 2
-    :n.machines 2
-    :jobs (list (MAKE-JOB-SHOP-JOB :JOB.NR 0
-				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 0 :MACHINE.NR 1 :DURATION 12 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 1 :MACHINE.NR 0 :DURATION 68 :START.TIME NIL)))
-		(MAKE-JOB-SHOP-JOB :JOB.NR 1
-				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 0 :MACHINE.NR 0 :DURATION 5 :START.TIME NIL)
-						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 1 :MACHINE.NR 1 :DURATION 5 :START.TIME NIL))))))
-
-(setf b (make-job-shop-problem
-    :name "mt06"
-    :n.jobs 3
-    :n.machines 6
-    :jobs (list (MAKE-JOB-SHOP-JOB :JOB.NR 0
-				   :TASKS '())
-				(MAKE-JOB-SHOP-JOB :JOB.NR 1
-				   :TASKS '())
-				(MAKE-JOB-SHOP-JOB :JOB.NR 2
-				   :TASKS '()))))
+	consideramos que as tarefas que ainda nao tem atribuido um valor de inicio
+	seriam idealmente, divididas igualmente entre todas as maquinas
+	formula: tempo.ja.atribuido + (tempo.por.atribuir / n.maquinas)"
+	(let ((n.maquinas (length (job-shop-state-machines.start.time estado)))
+		  (duracao.restante 0)
+		  (tempo.atribuido (heuristica estado)))
+		; percorre todos os trabalhos
+		(dolist (job (job-shop-state-jobs estado))
+			; percorre todas as tarefas do trabalho
+			(dolist (task (job-shop-job-tasks job))
+				; incrementa a duracao restante com a duracao de cada tarefa
+				(setf duracao.restante (+ duracao.restante (job-shop-task-duration task)))))
+		(+ tempo.atribuido (/ duracao.restante n.maquinas))))
 
 (defun cria-estado (problema)
 	(make-job-shop-state
