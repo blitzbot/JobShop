@@ -1,3 +1,4 @@
+(load "job_shop_solution.lisp")
 (setf a (make-job-shop-problem
     :name "mt06"
     :n.jobs 2
@@ -14,11 +15,26 @@
     :n.jobs 3
     :n.machines 6
     :jobs (list (MAKE-JOB-SHOP-JOB :JOB.NR 0
-				   :TASKS '())
-				(MAKE-JOB-SHOP-JOB :JOB.NR 1
-				   :TASKS '())
-				(MAKE-JOB-SHOP-JOB :JOB.NR 2
-				   :TASKS '()))))
+				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 0 :MACHINE.NR 2 :DURATION 1 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 1 :MACHINE.NR 0 :DURATION 3 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 2 :MACHINE.NR 1 :DURATION 6 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 3 :MACHINE.NR 3 :DURATION 7 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 4 :MACHINE.NR 5 :DURATION 3 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 0 :TASK.NR 5 :MACHINE.NR 4 :DURATION 6 :START.TIME NIL)))
+		(MAKE-JOB-SHOP-JOB :JOB.NR 1
+				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 0 :MACHINE.NR 1 :DURATION 8 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 1 :MACHINE.NR 2 :DURATION 5 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 2 :MACHINE.NR 4 :DURATION 10 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 3 :MACHINE.NR 5 :DURATION 10 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 4 :MACHINE.NR 0 :DURATION 10 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 1 :TASK.NR 5 :MACHINE.NR 3 :DURATION 4 :START.TIME NIL)))
+		(MAKE-JOB-SHOP-JOB :JOB.NR 2
+				   :TASKS (list (MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 0 :MACHINE.NR 2 :DURATION 5 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 1 :MACHINE.NR 3 :DURATION 4 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 2 :MACHINE.NR 5 :DURATION 8 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 3 :MACHINE.NR 0 :DURATION 9 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 4 :MACHINE.NR 1 :DURATION 1 :START.TIME NIL)
+						(MAKE-JOB-SHOP-TASK :JOB.NR 2 :TASK.NR 5 :MACHINE.NR 4 :DURATION 7 :START.TIME NIL))))))
 (setf first-job-problem (make-job-shop-problem
     :name "mt06"
     :n.jobs 6
@@ -67,11 +83,11 @@
 						(MAKE-JOB-SHOP-TASK :JOB.NR 5 :TASK.NR 5 :MACHINE.NR 2 :DURATION 1 :START.TIME NIL))))))
 
 ;(format t "procura a*~%")
-;(procura (cria-problema (cria-estado first-job-problem) (list #'operador) :objectivo? #'estado-objectivo :heuristica #'heuristica) "a*")
+;(procura (cria-problema (cria-estado b) (list #'operador) :objectivo? #'estado-objectivo :heuristica #'heuristica) "a*")
 ;(format t "===================================================================================~%")
-(format t "procura sondagem-iterativa~%")
-(sondagem-iterativa (cria-problema (cria-estado first-job-problem) (list #'operador) :objectivo? #'estado-objectivo))
-(format t "===================================================================================~%")
-(format t "procura ILDS~%")
-(improved-lds (cria-problema (cria-estado first-job-problem) (list #'operador) :objectivo? #'estado-objectivo :heuristica #'heuristica) 36)
-(format t "===================================================================================~%")
+;(format t "procura sondagem-iterativa~%")
+;(sondagem-iterativa (cria-problema (cria-estado first-job-problem) (list #'operador) :objectivo? #'estado-objectivo))
+;(format t "===================================================================================~%")
+;(format t "procura ILDS~%")
+;(improved-lds (cria-problema (cria-estado first-job-problem) (list #'operador) :objectivo? #'estado-objectivo :heuristica #'heuristica) 36)
+;(format t "===================================================================================~%")

@@ -90,7 +90,7 @@
 						; copia do estado que ira passar para o proximo no
 						(newState (copia-job_shop_state state))
 						; lista de tarefas actuais
-						(newStateJob (nth i (job-shop-state-jobs state)))
+						(newStateJob (nth i (job-shop-state-jobs newState)))
 						; tarefa a colocar na sequencia de tarefas
 						(newTask (car (job-shop-job-tasks newStateJob)))
 						(m.start.time (job-shop-state-machines.start.time newState))
@@ -105,7 +105,6 @@
 						(setf (job-shop-task-start.time newTask) start.time)
 						(setf (aref m.start.time (job-shop-task-machine.nr newTask)) new.time)
 						(setf (aref jobs.start.time (job-shop-task-job.nr newTask)) new.time)
-						; TODO: append em vez de cons?
 						(setf (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask))
 							(nconc (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask)) (list newTask)))
 						(setf sucessores (cons newState sucessores))))))
@@ -140,7 +139,8 @@
 			(dolist (task (job-shop-job-tasks job))
 				; incrementa a duracao restante com a duracao de cada tarefa
 				(setf duracao.restante (+ duracao.restante (job-shop-task-duration task)))))
-		(+ tempo.atribuido (/ duracao.restante n.maquinas))))
+		;(+ tempo.atribuido (/ duracao.restante n.maquinas))))
+		(/ duracao.restante n.maquinas)))
 
 (defun cria-estado (problema)
 	(make-job-shop-state
