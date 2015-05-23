@@ -1,3 +1,4 @@
+(in-package :user)
 (load "job_shop_solution.lisp")
 (setf a (make-job-shop-problem
     :name "mt06"
@@ -83,7 +84,7 @@
 						(MAKE-JOB-SHOP-TASK :JOB.NR 5 :TASK.NR 5 :MACHINE.NR 2 :DURATION 1 :START.TIME NIL))))))
 
 ;(format t "procura a*~%")
-;(procura (cria-problema (cria-estado b) (list #'operador) :objectivo? #'estado-objectivo :heuristica #'heuristica) "a*")
+;(procura (cria-problema (cria-estado b) (list #'operador) :objectivo? #'estado-objectivo :heuristica #'heuristica :custo (always 0)) "a*")
 ;(format t "===================================================================================~%")
 ;(format t "procura sondagem-iterativa~%")
 ;(sondagem-iterativa (cria-problema (cria-estado first-job-problem) (list #'operador) :objectivo? #'estado-objectivo))

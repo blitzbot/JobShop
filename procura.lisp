@@ -5,7 +5,7 @@
 ;;; Created on: Fri Apr 19 17:02:22 1996
 ;;;  change 001, Nov 2004 
 
-;(in-package :user)
+(in-package :user)
 
 (defun copy-array (array)
   (let ((dims (array-dimensions array)))

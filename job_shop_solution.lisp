@@ -1,4 +1,4 @@
-;(in-package :user)
+(in-package :user)
 
 (load (compile-file "procura.lisp"))
 (load (compile-file "job-shop-problemas-modelos.lisp"))
@@ -69,6 +69,49 @@
 			(return solucao)
 			(incf k))))))
 
+(defun procura-teste (problema profundidade-maxima)
+	"Faz procura sistematica (profundidade-primeiro) ate' 'a profundidade-maxima
+	e guarda todos os estados desta profundidade. De seguida corre o ILDS no estado com melhor
+	valor de f.
+	Correr ILDS e' equivalente a fazer o melhor caminho segundo a heuristica"
+  (let ((objectivo? (problema-objectivo? problema))
+  		(estados nil)
+  		(*nos-expandidos* 0)
+  		(*nos-gerados* 0))
+
+    (labels (
+    	(procura-prof (estado caminho prof-actual)
+	       (block procura-prof
+		 
+			 ;; base da recursao:
+			 ;; 1. quando comecamos a repetir estados pelos quais ja
+			 ;;    passamos no caminho que esta a ser percorrido
+			 ;;    (para evitar caminhos infinitos)
+			 ;; 2. quando atingimos o objectivo
+			 ;; 3. quando ultrapassamos a profundidade limite ate
+			 ;;    onde se deve efectuar a procura
+			 (cond ((funcall objectivo? estado) estado)
+			       ((= prof-actual profundidade-maxima) (setf estados (cons estado estados)) nil)
+			       (t 
+				(dolist (suc (problema-gera-sucessores problema
+								       estado))
+				  ;; avancamos recursivamente, em profundidade,
+				  ;; para cada sucessor
+				  (let ((solucao (procura-prof suc 
+							       (cons estado caminho)
+							       (1+ prof-actual))))
+				    (when solucao
+				      (return-from procura-prof solucao)))))))))
+      
+      (procura-prof (problema-estado-inicial problema) nil 0)
+      (setf estados (ordena-sucessores estados (problema-heuristica problema)))
+      ;(format t "~S~%" estados)
+      (improved-lds (cria-problema
+      					(car estados) (problema-operadores problema)
+      					:objectivo? (problema-objectivo? problema)
+      					:heuristica (problema-heuristica problema)
+      					:custo (always 0)) (total-tasks (car estados))))))
+
 (defun ordena-sucessores (sucessores heuristica)
 	"Ordena sucessores segundo a heuristica passada"
 	(sort sucessores #'(lambda (x y) (< (funcall heuristica x) (funcall heuristica y)))))
@@ -116,7 +159,8 @@
 			(return-from estado-objectivo NIL)))
 	t)
 
-(defun heuristica (estado)
+(defun utilidade (estado)
+	"Funcao utilidade: Devolve o tempo ma'ximo ocupado pelas tarefas atribuidas"
 	(let ((max 0))
 		(dotimes (i (array-dimension (job-shop-state-machines.start.time estado) 0))
 			(let ((valor (aref (job-shop-state-machines.start.time estado) i)))
@@ -124,7 +168,7 @@
 					(setf max valor))))
 		max))
 
-(defun heuristica-alternativa (estado)
+(defun heuristica (estado)
 	"heuristica optimista:
 
 	consideramos que as tarefas que ainda nao tem atribuido um valor de inicio
@@ -132,15 +176,14 @@
 	formula: tempo.ja.atribuido + (tempo.por.atribuir / n.maquinas)"
 	(let ((n.maquinas (length (job-shop-state-machines.start.time estado)))
 		  (duracao.restante 0)
-		  (tempo.atribuido (heuristica estado)))
+		  (tempo.atribuido (utilidade estado)))
 		; percorre todos os trabalhos
 		(dolist (job (job-shop-state-jobs estado))
 			; percorre todas as tarefas do trabalho
 			(dolist (task (job-shop-job-tasks job))
 				; incrementa a duracao restante com a duracao de cada tarefa
 				(setf duracao.restante (+ duracao.restante (job-shop-task-duration task)))))
-		;(+ tempo.atribuido (/ duracao.restante n.maquinas))))
-		(/ duracao.restante n.maquinas)))
+		(+ tempo.atribuido (/ duracao.restante n.maquinas))))
 
 (defun cria-estado (problema)
 	(make-job-shop-state
