@@ -69,6 +69,42 @@
 			(return solucao)
 			(incf k))))))
 
+; TODO: Pouco generico
+(defun sonda-heuristica (problema)
+	"Lanca sonda que vai percorrer um unico caminho segundo a melhor heuristica
+	Nunca vai chegar a um estado impossivel neste problema"
+	(let ((objectivo? (problema-objectivo? problema))
+		  (*nos-gerados* 0)
+		  (*nos-expandidos* 0))
+		(labels ((sonda (estado)
+			(if (or (null estado) (funcall objectivo? estado))
+				estado
+				(let ((sucessores (problema-gera-sucessores problema estado)))
+					(setf sucessores (ordena-sucessores sucessores (problema-heuristica problema)))
+					(sonda (car sucessores))))))
+		(sonda (problema-estado-inicial problema)))))
+
+; Baseado na funcao beam-search de: norvig.com/paip/search.lisp
+(defun beam-search (problema beam-width)
+	"Search highest scoring states first until goal is reached,
+  	but never consider more than beam-width states at a time."
+  	(let ((objectivo? (problema-objectivo? problema))
+		  (*nos-gerados* 0)
+		  (*nos-expandidos* 0))
+  	(labels (
+  		(tree-search (estados)
+  			(cond ((null estados) nil)
+  				   ((funcall objectivo? (car estados)) (car estados))
+  				   (t 
+  				   	(let ((sucessores (problema-gera-sucessores problema (car estados))))
+  				   		(setf estados (append sucessores (cdr estados)))
+  				   		(setf estados (ordena-sucessores estados (problema-heuristica problema)))
+  				   		(if (> beam-width (length estados))
+  				   			(setf estados estados)
+  				   			(setf estados (subseq estados 0 beam-width)))
+  				   		(tree-search estados))))))
+  	(tree-search (list (problema-estado-inicial problema))))))
+
 (defun procura-teste (problema profundidade-maxima)
 	"Faz procura sistematica (profundidade-primeiro) ate' 'a profundidade-maxima
 	e guarda todos os estados desta profundidade. De seguida corre o ILDS no estado com melhor
@@ -106,11 +142,11 @@
       (procura-prof (problema-estado-inicial problema) nil 0)
       (setf estados (ordena-sucessores estados (problema-heuristica problema)))
       ;(format t "~S~%" estados)
-      (improved-lds (cria-problema
+      (sonda-heuristica (cria-problema
       					(car estados) (problema-operadores problema)
       					:objectivo? (problema-objectivo? problema)
       					:heuristica (problema-heuristica problema)
-      					:custo (always 0)) (total-tasks (car estados))))))
+      					:custo (always 0))))))
 
 (defun ordena-sucessores (sucessores heuristica)
 	"Ordena sucessores segundo a heuristica passada"
