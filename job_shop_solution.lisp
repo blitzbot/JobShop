@@ -238,6 +238,19 @@
 				(setf restante (aref maquinas i))))
 		(+ tempo.atribuido restante)))
 
+(defun heuristica-alternativa2 (estado)
+	"Considera como unica restricao a precedencia de tarefas"
+	(let ((jobs (make-array (length (job-shop-state-jobs estado)) :initial-element 0))
+		  (tempo.atribuido (custo estado))
+		  (restante 0))
+		(dolist (job (job-shop-state-jobs estado))
+			(dolist (task (job-shop-job-tasks job))
+				(incf (aref jobs (job-shop-task-job.nr task)) (job-shop-task-duration task))))
+		(dotimes (i (length jobs))
+			(when (< restante (aref jobs i))
+				(setf restante (aref jobs i))))
+		(+ tempo.atribuido restante)))
+
 (defun calendarizacao (problema-job-shop estrategia)
 	(let ((problema (cria-problema (cria-estado problema-job-shop) (list #'operador)
 						:objectivo? #'estado-objectivo
@@ -255,7 +268,7 @@
 			((string-equal estrategia "a*.melhor.heuristica")
 				(car (last (car (procura problema "a*")))))
 			((string-equal estrategia "a*.melhor.heuristica.alternativa")
-				(setf (problema-heuristica problema) #'heuristica-alternativa)
+				(setf (problema-heuristica problema) #'heuristica-alternativa2)
 				(car (last (car (procura problema "a*")))))
 			((string-equal estrategia "sondagem.iterativa")
 				(sondagem-iterativa problema))
