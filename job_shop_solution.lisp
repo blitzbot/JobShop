@@ -79,14 +79,19 @@
 		(sonda (problema-estado-inicial problema)))))
 
 ; Baseado na funcao beam-search de: norvig.com/paip/search.lisp
-(defun beam-search (problema beam-width)
+(defun beam-search (problema beam-width tempo-inicio)
 	"Search highest scoring states first until goal is reached,
   	but never consider more than beam-width states at a time."
-  	(let ((objectivo? (problema-objectivo? problema)))
+  	(let ((objectivo? (problema-objectivo? problema))
+  		  (melhor-solucao nil))
   	(labels (
   		(tree-search (estados)
-  			(cond ((null estados) nil)
-  				   ((funcall objectivo? (car estados)) (car estados))
+  			; 300 sao os 5minutos em que e' permitido correr o algoritmo
+  			(cond ((or (< (- 300 (tempo-passado tempo-inicio)) 0.5) (null estados)) melhor-solucao)
+  				   ((funcall objectivo? (car estados))
+  				   	; quando chega a um estado objectivo guarda-o caso seja o melhor encontrado e continua a procurar
+  				   	(setf melhor-solucao (escolhe-melhor (car estados) melhor-solucao (problema-heuristica problema)))
+  				   	(tree-search (cdr estados)))
   				   (t 
   				   	(let ((sucessores (problema-gera-sucessores problema (car estados))))
   				   		(setf estados (append sucessores (cdr estados)))
@@ -96,6 +101,12 @@
   				   			(setf estados (subseq estados 0 beam-width)))
   				   		(tree-search estados))))))
   	(tree-search (list (problema-estado-inicial problema))))))
+
+(defun escolhe-melhor (estado1 estado2 heuristica)
+	(cond ((null estado1) estado2)
+		   ((null estado2) estado1)
+		   ((< (funcall heuristica estado1) (funcall heuristica estado2)) estado1)
+		   (t estado2)))
 
 ; Baseado na funcao profundidade-primeira disponibilizada em procura.lisp
 (defun procura-teste (problema profundidade-maxima)
@@ -222,11 +233,12 @@
 						:custo (always 0)))
 		  (*nos-expandidos* 0)
 		  (*nos-gerados* 0)
-		  (tempo-inicio (get-internal-run-time)))
+		  (tempo-inicio-run (get-internal-run-time))
+		  (tempo-inicio (get-internal-real-time)))
 		(let ((solucao 
 			(cond ((string-equal estrategia "melhor.abordagem")
 				; ainda nao esta' decidido
-				(beam-search problema 6))
+				(beam-search problema 6 tempo-inicio))
 			((string-equal estrategia "a*.melhor.heuristica")
 				(car (last (car (procura problema "a*")))))
 			((string-equal estrategia "a*.melhor.heuristica.alternativa")
@@ -240,7 +252,9 @@
 				; ainda nao esta decidido
 				(beam-search problema 6)))))
 			;(output solucao))))
-			(list (output solucao) (- (get-internal-run-time) tempo-inicio) *nos-expandidos* *nos-gerados* (funcall (problema-heuristica problema) solucao)))))
+			(if (null solucao)
+				solucao
+				(list (output solucao) (- (get-internal-run-time) tempo-inicio-run) *nos-expandidos* *nos-gerados* (funcall (problema-heuristica problema) solucao))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes auxiliares
@@ -269,6 +283,10 @@
 		(dotimes (i tamanho)
 			(setf resultado (append (aref taskSequence (- (- tamanho 1) i)) resultado)))
 		resultado))
+
+(defun tempo-passado (tempo-inicio)
+	"Devolve a quantidade de tempo real que passou desde tempo-inicio"
+	(/ (- (get-internal-real-time) tempo-inicio) internal-time-units-per-second))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes para a copia do estado
