@@ -105,6 +105,7 @@
   				   		(tree-search estados))))))
   	(tree-search (list (problema-estado-inicial problema))))))
 
+; Baseado na funcao profundidade-primeira disponibilizada em procura.lisp
 (defun procura-teste (problema profundidade-maxima)
 	"Faz procura sistematica (profundidade-primeiro) ate' 'a profundidade-maxima
 	e guarda todos os estados desta profundidade. De seguida corre o ILDS no estado com melhor
@@ -154,6 +155,7 @@
 
 
 (defun total-tasks (state)
+	"Conta numero total de tarefas ainda por atribuir tempo de inicio"
 	(let ((totalTasks 0))
 		(dolist (job (job-shop-state-jobs state))
 			(setf totalTasks (+ totalTasks (length (job-shop-job-tasks job)))))
@@ -190,13 +192,14 @@
 		sucessores))
 
 (defun estado-objectivo (state)
+	"Recebe o estado e diz se este e' objectivo ou nao"
 	(dolist (job (job-shop-state-jobs state))
 		(when (not (null (job-shop-job-tasks job)))
 			(return-from estado-objectivo NIL)))
 	t)
 
-(defun utilidade (estado)
-	"Funcao utilidade: Devolve o tempo ma'ximo ocupado pelas tarefas atribuidas"
+(defun custo (estado)
+	"Funcao custo: Devolve o tempo ma'ximo ocupado pelas tarefas atribuidas"
 	(let ((max 0))
 		(dotimes (i (array-dimension (job-shop-state-machines.start.time estado) 0))
 			(let ((valor (aref (job-shop-state-machines.start.time estado) i)))
@@ -212,7 +215,7 @@
 	formula: tempo.ja.atribuido + (tempo.por.atribuir / n.maquinas)"
 	(let ((n.maquinas (length (job-shop-state-machines.start.time estado)))
 		  (duracao.restante 0)
-		  (tempo.atribuido (utilidade estado)))
+		  (tempo.atribuido (custo estado)))
 		; percorre todos os trabalhos
 		(dolist (job (job-shop-state-jobs estado))
 			; percorre todas as tarefas do trabalho
@@ -221,7 +224,37 @@
 				(setf duracao.restante (+ duracao.restante (job-shop-task-duration task)))))
 		(+ tempo.atribuido (/ duracao.restante n.maquinas))))
 
+(defun calendarizacao (problema-job-shop estrategia)
+	(let ((problema (cria-problema (cria-estado problema-job-shop) (list #'operador)
+						:objectivo? #'estado-objectivo
+						:heuristica #'heuristica
+						; custo esta' inserido na heuristica
+						:custo (always 0)))
+		  (*nos-expandidos* 0)
+		  (*nos-gerados* 0))
+
+		(cond ((string-equal estrategia "melhor.abordagem")
+			; ainda nao esta' decidido
+			(beam-search problema 6))
+		((string-equal estrategia "a*.melhor.heuristica")
+			(last (car (procura problema "a*"))))
+		((string-equal estrategia "a*.melhor.heuristica.alternativa")
+			(setf (problema-heuristica problema) #'custo)
+			(last (car (procura problema "a*"))))
+		((string-equal estrategia "sondagem.iterativa")
+			(sondagem-iterativa problema))
+		((string-equal estrategia "ILDS")
+			(improved-lds problema (total-tasks (problema-estado-inicial problema))))
+		((string-equal estrategia "abordagem.alternativa")
+			; ainda nao esta decidido
+			(beam-search problema 6)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Funcoes auxiliares
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun cria-estado (problema)
+	"Recebe um job-shop-problem e devolve o estado correspondente usado nas procuras"
 	(make-job-shop-state
 		:taskSequence (make-array (job-shop-problem-n.jobs problema) :initial-element '())
 		:machines.start.time (make-array (job-shop-problem-n.machines problema) :initial-element 0)
@@ -229,10 +262,15 @@
 		:jobs (job-shop-problem-jobs problema)))
 
 (defun pop-task (state job.index)
+	"Retira a primeira tarefa do trabalho na posicao job.index
+	Assume que as tarefas estao ordenadas por numero de tarefa"
 	(setf (job-shop-job-tasks (nth job.index (job-shop-state-jobs state))) 
 		(cdr (job-shop-job-tasks (nth job.index (job-shop-state-jobs state)))))
 	state)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Funcoes para a copia do estado
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun copia-job_shop_state (state)
 	(let ((jobs (copy-list (job-shop-state-jobs state))))
 		(make-job-shop-state
