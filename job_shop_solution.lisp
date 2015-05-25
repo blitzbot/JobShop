@@ -13,8 +13,6 @@
 	"Algoritmo de sondagem iterativa
 	retorna primeira solucao encontrada"
 	(let ((objectivo? (problema-objectivo? problema))
-		  (*nos-gerados* 0)
-		  (*nos-expandidos* 0)
 		  (solucao nil))
 		;procura sonda
 		(labels ((procura-sonda (estado)
@@ -39,8 +37,6 @@
 	(let ((objectivo? (problema-objectivo? problema))
 		  (k 0)
 		  ;(depth (total-tasks (problema-estado-inicial problema)))
-		  (*nos-gerados* 0)
-		  (*nos-expandidos* 0)
 		  (solucao nil))
 
 	(labels ((ilds (estado k depth)
@@ -73,9 +69,7 @@
 (defun sonda-heuristica (problema)
 	"Lanca sonda que vai percorrer um unico caminho segundo a melhor heuristica
 	Nunca vai chegar a um estado impossivel neste problema"
-	(let ((objectivo? (problema-objectivo? problema))
-		  (*nos-gerados* 0)
-		  (*nos-expandidos* 0))
+	(let ((objectivo? (problema-objectivo? problema)))
 		(labels ((sonda (estado)
 			(if (or (null estado) (funcall objectivo? estado))
 				estado
@@ -88,9 +82,7 @@
 (defun beam-search (problema beam-width)
 	"Search highest scoring states first until goal is reached,
   	but never consider more than beam-width states at a time."
-  	(let ((objectivo? (problema-objectivo? problema))
-		  (*nos-gerados* 0)
-		  (*nos-expandidos* 0))
+  	(let ((objectivo? (problema-objectivo? problema)))
   	(labels (
   		(tree-search (estados)
   			(cond ((null estados) nil)
@@ -112,9 +104,7 @@
 	valor de f.
 	Correr ILDS e' equivalente a fazer o melhor caminho segundo a heuristica"
   (let ((objectivo? (problema-objectivo? problema))
-  		(estados nil)
-  		(*nos-expandidos* 0)
-  		(*nos-gerados* 0))
+  		(estados nil))
 
     (labels (
     	(procura-prof (estado caminho prof-actual)
@@ -231,23 +221,26 @@
 						; custo esta' inserido na heuristica
 						:custo (always 0)))
 		  (*nos-expandidos* 0)
-		  (*nos-gerados* 0))
-
-		(cond ((string-equal estrategia "melhor.abordagem")
-			; ainda nao esta' decidido
-			(output (beam-search problema 6)))
-		((string-equal estrategia "a*.melhor.heuristica")
-			(output (car (last (car (procura problema "a*"))))))
-		((string-equal estrategia "a*.melhor.heuristica.alternativa")
-			(setf (problema-heuristica problema) #'custo)
-			(output (car (last (car (procura problema "a*"))))))
-		((string-equal estrategia "sondagem.iterativa")
-			(output (sondagem-iterativa problema)))
-		((string-equal estrategia "ILDS")
-			(output (improved-lds problema (total-tasks (problema-estado-inicial problema)))))
-		((string-equal estrategia "abordagem.alternativa")
-			; ainda nao esta decidido
-			(output (beam-search problema 6))))))
+		  (*nos-gerados* 0)
+		  (tempo-inicio (get-internal-run-time)))
+		(let ((solucao 
+			(cond ((string-equal estrategia "melhor.abordagem")
+				; ainda nao esta' decidido
+				(beam-search problema 6))
+			((string-equal estrategia "a*.melhor.heuristica")
+				(car (last (car (procura problema "a*")))))
+			((string-equal estrategia "a*.melhor.heuristica.alternativa")
+				(setf (problema-heuristica problema) #'custo)
+				(car (last (car (procura problema "a*")))))
+			((string-equal estrategia "sondagem.iterativa")
+				(sondagem-iterativa problema))
+			((string-equal estrategia "ILDS")
+				(improved-lds problema (total-tasks (problema-estado-inicial problema))))
+			((string-equal estrategia "abordagem.alternativa")
+				; ainda nao esta decidido
+				(beam-search problema 6)))))
+			;(output solucao))))
+			(list (output solucao) (- (get-internal-run-time) tempo-inicio) *nos-expandidos* *nos-gerados* (funcall (problema-heuristica problema) solucao)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes auxiliares
