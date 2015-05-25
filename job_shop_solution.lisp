@@ -102,6 +102,28 @@
   				   		(tree-search estados))))))
   	(tree-search (list (problema-estado-inicial problema))))))
 
+(defun procura-com-corte (problema tempo-inicio)
+	(let* ((objectivo? (problema-objectivo? problema))
+		  (heuristica (problema-heuristica problema))
+		  (melhor-solucao (sonda-heuristica problema))
+		  (melhor-valor (funcall heuristica melhor-solucao)))
+	(format t "melhor valor: ~d~%" melhor-valor)
+	(labels (
+		(tree-search (estados)
+			(cond ((or (< (- 300 (tempo-passado tempo-inicio)) 0.5) (null estados)) melhor-solucao)
+				   ((funcall objectivo? (car estados))
+				   	(let ((valor (funcall heuristica (car estados))))
+				   		(when (< valor melhor-valor)
+				   			(setf melhor-valor valor)
+				   			(setf melhor-solucao (car estados))))
+				   	(tree-search (cdr estados)))
+				   (t
+				   	(let ((sucessores (problema-gera-sucessores problema (car estados))))
+				   		(setf estados (filtra-estados (append sucessores (cdr estados)) melhor-valor heuristica))
+				   		(setf estados (ordena-sucessores estados heuristica))
+				   		(tree-search estados))))))
+	(tree-search (list (problema-estado-inicial problema))))))
+
 (defun escolhe-melhor (estado1 estado2 heuristica)
 	(cond ((null estado1) estado2)
 		   ((null estado2) estado1)
@@ -251,6 +273,23 @@
 				(setf restante (aref jobs i))))
 		(+ tempo.atribuido restante)))
 
+(defun heuristica-alternativa3 (estado)
+	(let ((maquinas (make-array (length (job-shop-state-machines.start.time estado)) :initial-element 0))
+		  (jobs (make-array (length (job-shop-state-jobs estado)) :initial-element 0))
+		  (tempo.atribuido (custo estado))
+		  (restante 0))
+	(dolist (job (job-shop-state-jobs estado))
+		(dolist (task (job-shop-job-tasks job))
+			(incf (aref maquinas (job-shop-task-machine.nr task)) (job-shop-task-duration task))
+			(incf (aref jobs (job-shop-task-job.nr task)) (job-shop-task-duration task))))
+	(dotimes (i (length maquinas))
+			(when (< restante (aref maquinas i))
+				(setf restante (aref maquinas i))))
+	(dotimes (i (length jobs))
+			(when (< restante (aref jobs i))
+				(setf restante (aref jobs i))))
+	(+ tempo.atribuido restante)))
+
 (defun calendarizacao (problema-job-shop estrategia)
 	(let ((problema (cria-problema (cria-estado problema-job-shop) (list #'operador)
 						:objectivo? #'estado-objectivo
@@ -268,7 +307,7 @@
 			((string-equal estrategia "a*.melhor.heuristica")
 				(car (last (car (procura problema "a*")))))
 			((string-equal estrategia "a*.melhor.heuristica.alternativa")
-				(setf (problema-heuristica problema) #'heuristica-alternativa2)
+				(setf (problema-heuristica problema) #'heuristica-alternativa3)
 				(car (last (car (procura problema "a*")))))
 			((string-equal estrategia "sondagem.iterativa")
 				(sondagem-iterativa problema))
@@ -276,7 +315,7 @@
 				(improved-lds problema (total-tasks (problema-estado-inicial problema))))
 			((string-equal estrategia "abordagem.alternativa")
 				; ainda nao esta decidido
-				(beam-search problema 6)))))
+				(procura-com-corte problema tempo-inicio)))))
 			;(output solucao))))
 			(if (null solucao)
 				solucao
@@ -313,6 +352,13 @@
 (defun tempo-passado (tempo-inicio)
 	"Devolve a quantidade de tempo real que passou desde tempo-inicio"
 	(/ (- (get-internal-real-time) tempo-inicio) internal-time-units-per-second))
+
+(defun filtra-estados (estados valor heuristica)
+	(let ((resultado nil))
+		(dolist (estado estados)
+			(when (< (funcall heuristica estado) valor)
+				(cons estado resultado)))
+		resultado))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes para a copia do estado
