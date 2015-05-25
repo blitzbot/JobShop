@@ -225,6 +225,19 @@
 				(setf duracao.restante (+ duracao.restante (job-shop-task-duration task)))))
 		(+ tempo.atribuido (/ duracao.restante n.maquinas))))
 
+(defun heuristica-alternativa (estado)
+	"Considera como unica restricao um trabalho por maquina de cada vez"
+	(let ((maquinas (make-array (length (job-shop-state-machines.start.time estado)) :initial-element 0))
+		  (tempo.atribuido (custo estado))
+		  (restante 0))
+		(dolist (job (job-shop-state-jobs estado))
+			(dolist (task (job-shop-job-tasks job))
+				(incf (aref maquinas (job-shop-task-machine.nr task)) (job-shop-task-duration task))))
+		(dotimes (i (length maquinas))
+			(when (< restante (aref maquinas i))
+				(setf restante (aref maquinas i))))
+		(+ tempo.atribuido restante)))
+
 (defun calendarizacao (problema-job-shop estrategia)
 	(let ((problema (cria-problema (cria-estado problema-job-shop) (list #'operador)
 						:objectivo? #'estado-objectivo
@@ -242,7 +255,7 @@
 			((string-equal estrategia "a*.melhor.heuristica")
 				(car (last (car (procura problema "a*")))))
 			((string-equal estrategia "a*.melhor.heuristica.alternativa")
-				(setf (problema-heuristica problema) #'custo)
+				(setf (problema-heuristica problema) #'heuristica-alternativa)
 				(car (last (car (procura problema "a*")))))
 			((string-equal estrategia "sondagem.iterativa")
 				(sondagem-iterativa problema))
