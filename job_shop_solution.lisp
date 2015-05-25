@@ -235,19 +235,19 @@
 
 		(cond ((string-equal estrategia "melhor.abordagem")
 			; ainda nao esta' decidido
-			(beam-search problema 6))
+			(output (beam-search problema 6)))
 		((string-equal estrategia "a*.melhor.heuristica")
-			(last (car (procura problema "a*"))))
+			(output (car (last (car (procura problema "a*"))))))
 		((string-equal estrategia "a*.melhor.heuristica.alternativa")
 			(setf (problema-heuristica problema) #'custo)
-			(last (car (procura problema "a*"))))
+			(output (car (last (car (procura problema "a*"))))))
 		((string-equal estrategia "sondagem.iterativa")
-			(sondagem-iterativa problema))
+			(output (sondagem-iterativa problema)))
 		((string-equal estrategia "ILDS")
-			(improved-lds problema (total-tasks (problema-estado-inicial problema))))
+			(output (improved-lds problema (total-tasks (problema-estado-inicial problema)))))
 		((string-equal estrategia "abordagem.alternativa")
 			; ainda nao esta decidido
-			(beam-search problema 6)))))
+			(output (beam-search problema 6))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes auxiliares
@@ -267,6 +267,15 @@
 	(setf (job-shop-job-tasks (nth job.index (job-shop-state-jobs state))) 
 		(cdr (job-shop-job-tasks (nth job.index (job-shop-state-jobs state)))))
 	state)
+
+(defun output (estado)
+	"Recebe o estado e cria o output apropriado"
+	(let ((taskSequence (job-shop-state-taskSequence estado))
+		  (tamanho (array-dimension (job-shop-state-taskSequence estado) 0))
+		  (resultado nil))
+		(dotimes (i tamanho)
+			(setf resultado (append (aref taskSequence (- (- tamanho 1) i)) resultado)))
+		resultado))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes para a copia do estado
