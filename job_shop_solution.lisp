@@ -47,18 +47,10 @@
 				(setf sucessores (ordena-sucessores sucessores (problema-heuristica problema)))
 				
 				(when (> depth k)
-					(progn
-						; TODO: devia retornar o que quer que encontrasse
-						; ver melhor
-						(setf solucao (ilds (car sucessores) k (- depth 1)))
-						(when (not (null solucao))
-							(return-from ilds solucao)))
+					(return-from ilds (ilds (car sucessores) k (- depth 1))))
 				(when (> k 0)
 					(dolist (sucessor (cdr sucessores))
-						(progn
-							(setf solucao (ilds sucessor (- k 1) (- depth 1)))
-							(when (not (null solucao))
-								(return-from ilds solucao))))))))))
+						(return-from ilds (ilds sucessor (- k 1) (- depth 1)))))))))
 	(loop
 		(setf solucao (ilds (problema-estado-inicial problema) k depth))
 		(if (not (null solucao))
