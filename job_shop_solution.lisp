@@ -131,6 +131,7 @@
 		   (t estado2)))
 
 ; Baseado na funcao profundidade-primeira disponibilizada em procura.lisp
+; BF-BT (+/-)
 (defun procura-teste (problema profundidade-maxima)
 	"Faz procura sistematica (profundidade-primeiro) ate' 'a profundidade-maxima
 	e guarda todos os estados desta profundidade. De seguida corre o ILDS no estado com melhor
@@ -293,7 +294,8 @@
 (defun calendarizacao (problema-job-shop estrategia)
 	(let ((problema (cria-problema (cria-estado problema-job-shop) (list #'operador)
 						:objectivo? #'estado-objectivo
-						:heuristica #'heuristica
+						:heuristica #'heuristica-alternativa2
+						:hash #'funcao-hash
 						; custo esta' inserido na heuristica
 						:custo (always 0)))
 		  (*nos-expandidos* 0)
@@ -307,7 +309,7 @@
 			((string-equal estrategia "a*.melhor.heuristica")
 				(car (last (car (procura problema "a*")))))
 			((string-equal estrategia "a*.melhor.heuristica.alternativa")
-				(setf (problema-heuristica problema) #'heuristica-alternativa3)
+				(setf (problema-heuristica problema) #'heuristica-alternativa2)
 				(car (last (car (procura problema "a*")))))
 			((string-equal estrategia "sondagem.iterativa")
 				(sondagem-iterativa problema))
@@ -319,7 +321,7 @@
 			;(output solucao))))
 			(if (null solucao)
 				solucao
-				(list (output solucao) (- (get-internal-run-time) tempo-inicio-run) *nos-expandidos* *nos-gerados* (funcall (problema-heuristica problema) solucao))))))
+				(list (output solucao) (- (get-internal-run-time) tempo-inicio-run) *nos-expandidos* *nos-gerados* (funcall (problema-custo problema) solucao))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes auxiliares
@@ -359,6 +361,12 @@
 			(when (< (funcall heuristica estado) valor)
 				(cons estado resultado)))
 		resultado))
+
+(defun funcao-hash (estado)
+	(let ((resultado nil))
+		(dolist (job (job-shop-state-jobs estado))
+			(setf resultado (cons (length (job-shop-job-tasks job)) resultado)))
+		(sxhash (cons (custo estado) resultado))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes para a copia do estado
