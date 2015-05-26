@@ -7,6 +7,7 @@
    taskSequence
    machines.start.time
    jobs.start.time
+   cost
    jobs)
 
 (defun sondagem-iterativa (problema)
@@ -211,9 +212,12 @@
 						(setf (job-shop-task-start.time newTask) start.time)
 						(setf (aref m.start.time (job-shop-task-machine.nr newTask)) new.time)
 						(setf (aref jobs.start.time (job-shop-task-job.nr newTask)) new.time)
-						;(setf (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask))
-						;	(nconc (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask)) (list newTask)))
-						(nconc (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask)) (list newTask))
+						; actualiza o custo
+						(setf (job-shop-state-cost state) (max (job-shop-state-cost state) new.time))
+						(setf (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask))
+							(append (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask)) (list newTask)))
+						; TODO: seria melhor fazer so nconc
+						;(nconc (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask)) (list newTask))
 						(setf sucessores (cons newState sucessores))))))
 		sucessores))
 
@@ -226,12 +230,13 @@
 
 (defun custo (estado)
 	"Funcao custo: Devolve o tempo ma'ximo ocupado pelas tarefas atribuidas"
-	(let ((max 0))
-		(dotimes (i (array-dimension (job-shop-state-machines.start.time estado) 0))
-			(let ((valor (aref (job-shop-state-machines.start.time estado) i)))
-				(when (> valor max)
-					(setf max valor))))
-		max))
+	(job-shop-state-cost estado))
+	;(let ((max 0))
+	;	(dotimes (i (array-dimension (job-shop-state-machines.start.time estado) 0))
+	;		(let ((valor (aref (job-shop-state-machines.start.time estado) i)))
+	;			(when (> valor max)
+	;				(setf max valor))))
+	;	max))
 
 (defun heuristica (estado)
 	"heuristica optimista:
@@ -335,7 +340,8 @@
 		:taskSequence (make-array (job-shop-problem-n.jobs problema) :initial-element '())
 		:machines.start.time (make-array (job-shop-problem-n.machines problema) :initial-element 0)
 		:jobs.start.time (make-array (job-shop-problem-n.jobs problema) :initial-element 0)
-		:jobs (job-shop-problem-jobs problema)))
+		:jobs (job-shop-problem-jobs problema)
+		:cost 0))
 
 (defun pop-task (state job.index)
 	"Retira a primeira tarefa do trabalho na posicao job.index
@@ -389,7 +395,8 @@
 			:taskSequence (copia-job_task_sequence (job-shop-state-taskSequence state))
 			:machines.start.time (copy-array (job-shop-state-machines.start.time state))
 			:jobs (mapcar #'copia-job_shop_job jobs)
-			:jobs.start.time (copy-array (job-shop-state-jobs.start.time state)))))
+			:jobs.start.time (copy-array (job-shop-state-jobs.start.time state))
+			:cost (job-shop-state-cost state))))
 
 (defun copia-job_shop_job (job)
 	(let ((tasks (copy-list (job-shop-job-tasks job))))
