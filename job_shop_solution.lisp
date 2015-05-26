@@ -36,7 +36,6 @@
 	"Algoritmo ILDS"
 	(let ((objectivo? (problema-objectivo? problema))
 		  (k 0)
-		  ;(depth (total-tasks (problema-estado-inicial problema)))
 		  (solucao nil))
 
 	(labels ((ilds (estado k depth)
@@ -94,6 +93,7 @@
   				   	(tree-search (cdr estados)))
   				   (t 
   				   	(let ((sucessores (problema-gera-sucessores problema (car estados))))
+  				   		; TODO: sera' possivel inserir de forma ordenada?
   				   		(setf estados (append sucessores (cdr estados)))
   				   		(setf estados (ordena-sucessores estados (problema-heuristica problema)))
   				   		(if (> beam-width (length estados))
@@ -110,8 +110,9 @@
 	(format t "melhor valor: ~d~%" melhor-valor)
 	(labels (
 		(tree-search (estados)
-			(cond ((or (< (- 300 (tempo-passado tempo-inicio)) 0.5) (null estados)) melhor-solucao)
+			(cond ((or (< (- 300 (tempo-passado tempo-inicio)) 0.5) (null estados)) (format t "Acabou~%") melhor-solucao)
 				   ((funcall objectivo? (car estados))
+				   	(format t "Objectivo~%")
 				   	(let ((valor (funcall heuristica (car estados))))
 				   		(when (< valor melhor-valor)
 				   			(setf melhor-valor valor)
@@ -210,8 +211,9 @@
 						(setf (job-shop-task-start.time newTask) start.time)
 						(setf (aref m.start.time (job-shop-task-machine.nr newTask)) new.time)
 						(setf (aref jobs.start.time (job-shop-task-job.nr newTask)) new.time)
-						(setf (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask))
-							(nconc (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask)) (list newTask)))
+						;(setf (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask))
+						;	(nconc (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask)) (list newTask)))
+						(nconc (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask)) (list newTask))
 						(setf sucessores (cons newState sucessores))))))
 		sucessores))
 
@@ -359,8 +361,18 @@
 	(let ((resultado nil))
 		(dolist (estado estados)
 			(when (< (funcall heuristica estado) valor)
-				(cons estado resultado)))
+				(setf resultado (cons estado resultado))))
 		resultado))
+
+;(defun filtra-estados (estados valor heuristica)
+;	(let ((resultado nil)
+;		  (cortes 0))
+;		(dolist (estado estados)
+;			(if (< (funcall heuristica estado) valor)
+;				(setf resultado (cons estado resultado))
+;				(incf cortes)))
+;		(format t "~d~%" cortes)
+;		resultado))
 
 (defun funcao-hash (estado)
 	(let ((resultado nil))
