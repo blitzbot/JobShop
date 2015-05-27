@@ -332,10 +332,67 @@
 	;			(setf restante (aref jobs i))))
 	(+ tempo.atribuido (* 0.55 restante) (* 0.45 totalTasksTime))))
 
+(defun heuristica-alternativa6 (estado)
+	"Esta heuristica e' bastante ma'...."
+	(let ((tempo.atribuido (custo estado))
+		  (restante 0)
+		  (totalTasksTime 0)
+		  (sequenciaTotalTime 0))
+	(dolist (job (job-shop-state-jobs estado))
+		(dolist (task (job-shop-job-tasks job))
+			(incf totalTasksTime (job-shop-task-duration task))))
+	(dotimes (i (length (job-shop-state-taskSequence estado)))
+		(dolist (task (aref (job-shop-state-taskSequence estado) i))
+			(incf sequenciaTotalTime (job-shop-task-duration task))))
+	(if (zerop sequenciaTotalTime)
+		(+ tempo.atribuido totalTasksTime)
+		(+ tempo.atribuido (* (/ tempo.atribuido sequenciaTotalTime) totalTasksTime)))))
+	
+(defun heuristica-alternativa7 (estado)
+	"Igual ao 5 mas tem em conta os jobs"
+	(let ((maquinas (make-array (length (job-shop-state-machines.start.time estado)) :initial-element 0))
+		  (jobs (make-array (length (job-shop-state-jobs estado)) :initial-element 0))
+		  (tempo.atribuido (custo estado))
+		  (restante 0)
+		  (totalTasksTime 0))
+	(dolist (job (job-shop-state-jobs estado))
+		(dolist (task (job-shop-job-tasks job))
+			(incf (aref maquinas (job-shop-task-machine.nr task)) (job-shop-task-duration task))
+			(incf totalTasksTime (job-shop-task-duration task))
+			(incf (aref jobs (job-shop-task-job.nr task)) (job-shop-task-duration task))))
+	(dotimes (i (length maquinas))
+			(when (< restante (aref maquinas i))
+				(setf restante (aref maquinas i))))
+	(dotimes (i (length jobs))
+			(when (< restante (aref jobs i))
+				(setf restante (aref jobs i))))
+	(+ tempo.atribuido (* 0.55 restante) (* 0.45 totalTasksTime))))
+
+(defun heuristica-alternativa8 (estado)
+	"Media entre 3 componentes - 3060 no giant"
+	(let ((maquinas (make-array (length (job-shop-state-machines.start.time estado)) :initial-element 0))
+		  (jobs (make-array (length (job-shop-state-jobs estado)) :initial-element 0))
+		  (tempo.atribuido (custo estado))
+		  (restante1 0)
+		  (restante2 0)
+		  (totalTasksTime 0))
+	(dolist (job (job-shop-state-jobs estado))
+		(dolist (task (job-shop-job-tasks job))
+			(incf (aref maquinas (job-shop-task-machine.nr task)) (job-shop-task-duration task))
+			(incf totalTasksTime (job-shop-task-duration task))
+			(incf (aref jobs (job-shop-task-job.nr task)) (job-shop-task-duration task))))
+	(dotimes (i (length maquinas))
+			(when (< restante1 (aref maquinas i))
+				(setf restante1 (aref maquinas i))))
+	(dotimes (i (length jobs))
+			(when (< restante2 (aref jobs i))
+				(setf restante2 (aref jobs i))))
+	(+ tempo.atribuido (/ (+ restante1 restante2 totalTasksTime) 3))))
+
 (defun calendarizacao (problema-job-shop estrategia)
 	(let ((problema (cria-problema (cria-estado problema-job-shop) (list #'operador)
 						:objectivo? #'estado-objectivo
-						:heuristica #'heuristica-alternativa5
+						:heuristica #'heuristica-alternativa8
 						:hash #'funcao-hash
 						; custo esta' inserido na heuristica
 						:custo (always 0)))
