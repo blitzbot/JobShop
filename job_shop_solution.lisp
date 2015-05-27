@@ -50,7 +50,9 @@
 					(return-from ilds (ilds (car sucessores) k (- depth 1))))
 				(when (> k 0)
 					(dolist (sucessor (cdr sucessores))
-						(return-from ilds (ilds sucessor (- k 1) (- depth 1)))))))))
+						(setf solucao (ilds sucessor (- k 1) (- depth 1)))
+-							(when (not (null solucao))
+-								(return-from ilds solucao))))))))
 	(loop
 		(setf solucao (ilds (problema-estado-inicial problema) k depth))
 		(if (not (null solucao))
@@ -205,7 +207,7 @@
 						(setf (aref m.start.time (job-shop-task-machine.nr newTask)) new.time)
 						(setf (aref jobs.start.time (job-shop-task-job.nr newTask)) new.time)
 						; actualiza o custo
-						(setf (job-shop-state-cost state) (max (job-shop-state-cost state) new.time))
+						(setf (job-shop-state-cost newState) (max (job-shop-state-cost newState) new.time))
 						(setf (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask))
 							(append (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask)) (list newTask)))
 						; TODO: seria melhor fazer so nconc
@@ -271,29 +273,46 @@
 		(dotimes (i (length jobs))
 			(when (< restante (aref jobs i))
 				(setf restante (aref jobs i))))
-		(+ tempo.atribuido restante)))
+		(+ (* tempo.atribuido 0.5) (* restante 0.3) (* (total-tasks estado) 0.2))))
 
 (defun heuristica-alternativa3 (estado)
 	(let ((maquinas (make-array (length (job-shop-state-machines.start.time estado)) :initial-element 0))
 		  (jobs (make-array (length (job-shop-state-jobs estado)) :initial-element 0))
 		  (tempo.atribuido (custo estado))
+		  (max-maqs 0)
+		  (max-jobs 0)
 		  (restante 0))
 	(dolist (job (job-shop-state-jobs estado))
 		(dolist (task (job-shop-job-tasks job))
 			(incf (aref maquinas (job-shop-task-machine.nr task)) (job-shop-task-duration task))
 			(incf (aref jobs (job-shop-task-job.nr task)) (job-shop-task-duration task))))
 	(dotimes (i (length maquinas))
-			(when (< restante (aref maquinas i))
-				(setf restante (aref maquinas i))))
+			(when (< max-maqs (aref maquinas i))
+				(setf max-maqs (aref maquinas i))))
 	(dotimes (i (length jobs))
-			(when (< restante (aref jobs i))
-				(setf restante (aref jobs i))))
-	(+ tempo.atribuido restante)))
+			(when (< max-jobs (aref jobs i))
+				(setf max-jobs (aref jobs i))))
+	(+ tempo.atribuido (+ (max max-maqs max-jobs) (abs (- max-jobs max-maqs))))))
+
+(defun heuristica-alternativa4 (estado)
+	(let ((sequencia (job-shop-state-taskSequence estado))
+		  (custo (custo estado))
+		  (duracao.atribuida 0)
+		  (restante 0))
+		(dotimes (i (array-dimension sequencia 0))
+			(dolist (task (aref sequencia i))
+				(incf duracao.atribuida (job-shop-task-duration task))))
+		(dolist (job (job-shop-state-jobs estado))
+			(dolist (task (job-shop-job-tasks job))
+				(incf restante (job-shop-task-duration task))))
+		(if (= duracao.atribuida 0)
+			custo
+			(+ custo (* (/ custo duracao.atribuida) restante)))))
 
 (defun calendarizacao (problema-job-shop estrategia)
 	(let ((problema (cria-problema (cria-estado problema-job-shop) (list #'operador)
 						:objectivo? #'estado-objectivo
-						:heuristica #'heuristica-alternativa2
+						:heuristica #'heuristica-alternativa4
 						:hash #'funcao-hash
 						; custo esta' inserido na heuristica
 						:custo (always 0)))
@@ -306,10 +325,16 @@
 				; ainda nao esta' decidido
 				(beam-search problema 6 tempo-inicio))
 			((string-equal estrategia "a*.melhor.heuristica")
-				(car (last (car (procura problema "a*")))))
+				(setf temp (procura problema "a*"))
+				(setf *nos-expandidos* (car (cdr (cdr temp))))
+				(setf *nos-gerados* (car (cdr (cdr (cdr temp)))))
+				(car (last (car temp))))
 			((string-equal estrategia "a*.melhor.heuristica.alternativa")
 				(setf (problema-heuristica problema) #'heuristica-alternativa2)
-				(car (last (car (procura problema "a*")))))
+				(setf temp (procura problema "a*"))
+				(setf *nos-expandidos* (car (cdr temp)))
+				(setf *nos-gerados* (car (cdr (cdr temp))))
+				(car (last (car temp))))
 			((string-equal estrategia "sondagem.iterativa")
 				(sondagem-iterativa problema))
 			((string-equal estrategia "ILDS")
@@ -320,7 +345,7 @@
 			;(output solucao))))
 			(if (null solucao)
 				solucao
-				(list (output solucao) (- (get-internal-run-time) tempo-inicio-run) *nos-expandidos* *nos-gerados* (funcall (problema-custo problema) solucao))))))
+				(list (output solucao) (- (get-internal-run-time) tempo-inicio-run) *nos-expandidos* *nos-gerados* (funcall (problema-heuristica problema) solucao))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes auxiliares
