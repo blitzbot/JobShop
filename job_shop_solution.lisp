@@ -330,7 +330,7 @@
 	;(dotimes (i (length jobs))
 	;		(when (< restante (aref jobs i))
 	;			(setf restante (aref jobs i))))
-	(+ tempo.atribuido (* 0.6 restante) (* 0.4 totalTasksTime))))
+	(+ tempo.atribuido (* 0.55 restante) (* 0.45 totalTasksTime))))
 
 (defun calendarizacao (problema-job-shop estrategia)
 	(let ((problema (cria-problema (cria-estado problema-job-shop) (list #'operador)
@@ -368,7 +368,7 @@
 			;(output solucao))))
 			(if (null solucao)
 				solucao
-				(list (output solucao) (- (get-internal-run-time) tempo-inicio-run) *nos-expandidos* *nos-gerados* (custo solucao))))))
+				(list (output solucao) (tempo-passado tempo-inicio) (- (get-internal-run-time) tempo-inicio-run) *nos-expandidos* *nos-gerados* (custo solucao))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes auxiliares
