@@ -295,19 +295,23 @@
 	(+ tempo.atribuido (+ (max max-maqs max-jobs) (abs (- max-jobs max-maqs))))))
 
 (defun heuristica-alternativa4 (estado)
-	(let ((sequencia (job-shop-state-taskSequence estado))
-		  (custo (custo estado))
-		  (duracao.atribuida 0)
-		  (restante 0))
-		(dotimes (i (array-dimension sequencia 0))
-			(dolist (task (aref sequencia i))
-				(incf duracao.atribuida (job-shop-task-duration task))))
-		(dolist (job (job-shop-state-jobs estado))
-			(dolist (task (job-shop-job-tasks job))
-				(incf restante (job-shop-task-duration task))))
-		(if (= duracao.atribuida 0)
-			custo
-			(+ custo (* (/ custo duracao.atribuida) restante)))))
+	(let ((maquinas (make-array (length (job-shop-state-machines.start.time estado)) :initial-element 0))
+		  ;(jobs (make-array (length (job-shop-state-jobs estado)) :initial-element 0))
+		  (tempo.atribuido (custo estado))
+		  (restante 0)
+		  (totalTasksTime 0))
+	(dolist (job (job-shop-state-jobs estado))
+		(dolist (task (job-shop-job-tasks job))
+			(incf (aref maquinas (job-shop-task-machine.nr task)) (job-shop-task-duration task))
+			(incf totalTasksTime (job-shop-task-duration task))))
+			;(incf (aref jobs (job-shop-task-job.nr task)) (job-shop-task-duration task))))
+	(dotimes (i (length maquinas))
+			(when (< restante (aref maquinas i))
+				(setf restante (aref maquinas i))))
+	;(dotimes (i (length jobs))
+	;		(when (< restante (aref jobs i))
+	;			(setf restante (aref jobs i))))
+	(+ tempo.atribuido (/ (+ restante totalTasksTime) 2))))
 
 (defun calendarizacao (problema-job-shop estrategia)
 	(let ((problema (cria-problema (cria-estado problema-job-shop) (list #'operador)
@@ -345,7 +349,7 @@
 			;(output solucao))))
 			(if (null solucao)
 				solucao
-				(list (output solucao) (- (get-internal-run-time) tempo-inicio-run) *nos-expandidos* *nos-gerados* (funcall (problema-heuristica problema) solucao))))))
+				(list (output solucao) (- (get-internal-run-time) tempo-inicio-run) *nos-expandidos* *nos-gerados* (custo solucao))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes auxiliares
