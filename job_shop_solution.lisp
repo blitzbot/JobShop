@@ -313,10 +313,29 @@
 	;			(setf restante (aref jobs i))))
 	(+ tempo.atribuido (/ (+ restante totalTasksTime) 2))))
 
+(defun heuristica-alternativa5 (estado)
+	(let ((maquinas (make-array (length (job-shop-state-machines.start.time estado)) :initial-element 0))
+		  ;(jobs (make-array (length (job-shop-state-jobs estado)) :initial-element 0))
+		  (tempo.atribuido (custo estado))
+		  (restante 0)
+		  (totalTasksTime 0))
+	(dolist (job (job-shop-state-jobs estado))
+		(dolist (task (job-shop-job-tasks job))
+			(incf (aref maquinas (job-shop-task-machine.nr task)) (job-shop-task-duration task))
+			(incf totalTasksTime (job-shop-task-duration task))))
+			;(incf (aref jobs (job-shop-task-job.nr task)) (job-shop-task-duration task))))
+	(dotimes (i (length maquinas))
+			(when (< restante (aref maquinas i))
+				(setf restante (aref maquinas i))))
+	;(dotimes (i (length jobs))
+	;		(when (< restante (aref jobs i))
+	;			(setf restante (aref jobs i))))
+	(+ tempo.atribuido (* 0.6 restante) (* 0.4 totalTasksTime))))
+
 (defun calendarizacao (problema-job-shop estrategia)
 	(let ((problema (cria-problema (cria-estado problema-job-shop) (list #'operador)
 						:objectivo? #'estado-objectivo
-						:heuristica #'heuristica-alternativa4
+						:heuristica #'heuristica-alternativa5
 						:hash #'funcao-hash
 						; custo esta' inserido na heuristica
 						:custo (always 0)))
