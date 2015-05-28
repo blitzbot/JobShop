@@ -78,25 +78,48 @@
 	"Search highest scoring states first until goal is reached,
   	but never consider more than beam-width states at a time."
   	(let ((objectivo? (problema-objectivo? problema))
+  		  (heuristica (problema-heuristica problema))
   		  (melhor-solucao nil))
   	(labels (
   		(tree-search (estados)
   			; 300 sao os 5minutos em que e' permitido correr o algoritmo
   			(cond ((or (< (- 300 (tempo-passado tempo-inicio)) 0.5) (null estados)) melhor-solucao)
   				   ((funcall objectivo? (car estados))
-  				   	(format t "Objectivo~%")
+  				   	;(format t "Objectivo ~A~%" (custo (car estados)))
   				   	; quando chega a um estado objectivo guarda-o caso seja o melhor encontrado e continua a procurar
-  				   	(setf melhor-solucao (escolhe-melhor (car estados) melhor-solucao (problema-heuristica problema)))
+  				   	(setf melhor-solucao (escolhe-melhor (car estados) melhor-solucao heuristica))
   				   	(tree-search (cdr estados)))
   				   (t 
-  				   	(let ((sucessores (problema-gera-sucessores problema (car estados))))
-  				   		; TODO: sera' possivel inserir de forma ordenada?
-  				   		(setf estados (append sucessores (cdr estados)))
-  				   		(setf estados (ordena-sucessores estados (problema-heuristica problema)))
+  				   	(let ((sucessores (problema-gera-sucessores problema (car estados)))
+  				   		  (beam-sucessores nil)
+  				   		  (index 0)
+  				   		  (h most-positive-fixnum)
+  				   		  (temp-h 0))
+  				   		(dotimes (i (min beam-width (length sucessores)))
+  				   			(dotimes (j (length sucessores))
+				   				(setf temp-h (funcall heuristica (nth j sucessores)))
+				   				(when (< temp-h h)
+				   					(setf h temp-h)
+				   					(setf index j)))
+					   			(setf beam-sucessores (append beam-sucessores (list (nth index sucessores))))
+					   			(setf sucessores (remove-nth index sucessores))
+					   			(setf h most-positive-fixnum))
+  				   		(setf estados (ordena-sucessores (append beam-sucessores (cdr estados)) heuristica))
+  				   		;(setf estados (append sucessores (cdr estados)))
+  				   		;(setf estados (ordena-sucessores estados (problema-heuristica problema)))
   				   		(when (< beam-width (length estados))
   				   			(setf estados (subseq estados 0 beam-width)))
   				   		(tree-search estados))))))
   	(tree-search (list (problema-estado-inicial problema))))))
+
+(defun remove-nth (n lst)
+  (labels ((walk-list (n lst idx)
+             (if (null lst)
+                 lst
+                 (if (= n idx)
+                     (walk-list n (cdr lst) (1+ idx))
+                     (cons (car lst) (walk-list n (cdr lst) (1+ idx)))))))
+    (walk-list n lst 0)))
 
 (defun procura-com-corte (problema tempo-inicio)
 	(let* ((objectivo? (problema-objectivo? problema))
