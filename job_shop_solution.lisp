@@ -44,12 +44,12 @@
 			estado
 			(let ((sucessores (problema-gera-sucessores problema estado)))
 				;(format t "~S~%" sucessores)
-				(setf sucessores (ordena-sucessores sucessores (problema-heuristica problema)))
+				;(setf sucessores (ordena-sucessores sucessores (problema-heuristica problema)))
 				
 				(when (> depth k)
-					(return-from ilds (ilds (car sucessores) k (- depth 1))))
+					(return-from ilds (ilds (melhor-estado sucessores (problema-heuristica problema)) k (- depth 1))))
 				(when (> k 0)
-					(dolist (sucessor (cdr sucessores))
+					(dolist (sucessor (ordena-sucessores (cdr sucessores) (problema-heuristica problema)))
 						(setf solucao (ilds sucessor (- k 1) (- depth 1)))
 -							(when (not (null solucao))
 -								(return-from ilds solucao))))))))
@@ -68,8 +68,9 @@
 			(if (or (null estado) (funcall objectivo? estado))
 				estado
 				(let ((sucessores (problema-gera-sucessores problema estado)))
-					(setf sucessores (ordena-sucessores sucessores (problema-heuristica problema)))
-					(sonda (car sucessores))))))
+					;(setf sucessores (car (ordena-sucessores sucessores (problema-heuristica problema))))
+					(setf sucessores (melhor-estado sucessores (problema-heuristica problema)))
+					(sonda sucessores)))))
 		(sonda (problema-estado-inicial problema)))))
 
 ; Baseado na funcao beam-search de: norvig.com/paip/search.lisp
@@ -83,6 +84,7 @@
   			; 300 sao os 5minutos em que e' permitido correr o algoritmo
   			(cond ((or (< (- 300 (tempo-passado tempo-inicio)) 0.5) (null estados)) melhor-solucao)
   				   ((funcall objectivo? (car estados))
+  				   	(format t "Objectivo~%")
   				   	; quando chega a um estado objectivo guarda-o caso seja o melhor encontrado e continua a procurar
   				   	(setf melhor-solucao (escolhe-melhor (car estados) melhor-solucao (problema-heuristica problema)))
   				   	(tree-search (cdr estados)))
@@ -91,8 +93,7 @@
   				   		; TODO: sera' possivel inserir de forma ordenada?
   				   		(setf estados (append sucessores (cdr estados)))
   				   		(setf estados (ordena-sucessores estados (problema-heuristica problema)))
-  				   		(if (> beam-width (length estados))
-  				   			(setf estados estados)
+  				   		(when (< beam-width (length estados))
   				   			(setf estados (subseq estados 0 beam-width)))
   				   		(tree-search estados))))))
   	(tree-search (list (problema-estado-inicial problema))))))
@@ -455,6 +456,18 @@
 		(dotimes (i tamanho)
 			(setf resultado (append (aref taskSequence (- (- tamanho 1) i)) resultado)))
 		resultado))
+
+(defun melhor-estado (estados heuristica)
+	"Recebe uma lista de estados e devolve o melhor segundo uma heuristica"
+	(let ((estado-melhor (car estados))
+		  (h-melhor (funcall heuristica (car estados)))
+		  (h-actual 0))
+		(dolist (estado estados)
+			(setf h-actual (funcall heuristica estado))
+			(when (< h-actual h-melhor)
+				(setf estado-melhor estado)
+				(setf h-melhor h-actual)))
+		estado-melhor))
 
 (defun tempo-passado (tempo-inicio)
 	"Devolve a quantidade de tempo real que passou desde tempo-inicio"
