@@ -1,14 +1,15 @@
 (in-package :user)
 
-;(load (compile-file "procura.lisp"))
-;(load (compile-file "job-shop-problemas-modelos.lisp"))
-
 (defstruct job-shop-state
    taskSequence
    machines.start.time
    jobs.start.time
    cost
    jobs)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Procuras
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun sondagem-iterativa (problema)
 	"Algoritmo de sondagem iterativa
@@ -42,13 +43,12 @@
 	(labels ((ilds (estado k depth)
 		(if (or (null estado) (funcall objectivo? estado))
 			estado
-			(let ((sucessores (problema-gera-sucessores problema estado)))
-				;(format t "~S~%" sucessores)
-				;(setf sucessores (ordena-sucessores sucessores (problema-heuristica problema)))
-				
+			(let ((sucessores (problema-gera-sucessores problema estado)))				
 				(when (> depth k)
+					; chama ILDS recursivamente com o melhor estado na lista de sucessores
 					(return-from ilds (ilds (melhor-estado sucessores (problema-heuristica problema)) k (- depth 1))))
 				(when (> k 0)
+					; alteracao proposta no paper para arvores nao binarias; percorrer todos os vizinhos quando ha' discrepancia
 					(dolist (sucessor (ordena-sucessores (cdr sucessores) (problema-heuristica problema)))
 						(setf solucao (ilds sucessor (- k 1) (- depth 1)))
 							(when (not (null solucao))
@@ -59,7 +59,6 @@
 			(return solucao)
 			(incf k))))))
 
-; TODO: Pouco generico
 (defun sonda-heuristica (problema)
 	"Lanca sonda que vai percorrer um unico caminho segundo a melhor heuristica
 	Nunca vai chegar a um estado impossivel neste problema"
@@ -68,7 +67,8 @@
 			(if (or (null estado) (funcall objectivo? estado))
 				estado
 				(let ((sucessores (problema-gera-sucessores problema estado)))
-					;(setf sucessores (car (ordena-sucessores sucessores (problema-heuristica problema))))
+					; sucessores escolhe o melhor estado e liberta o resto da lista para poder ser apanhado 
+					;  pelo GC
 					(setf sucessores (melhor-estado sucessores (problema-heuristica problema)))
 					(sonda sucessores)))))
 		(sonda (problema-estado-inicial problema)))))
@@ -85,7 +85,6 @@
   			; 300 sao os 5minutos em que e' permitido correr o algoritmo
   			(cond ((or (< (- 300 (tempo-passado tempo-inicio)) 0.5) (null estados)) melhor-solucao)
   				   ((funcall objectivo? (car estados))
-  				   	;(format t "Objectivo ~A~%" (custo (car estados)))
   				   	; quando chega a um estado objectivo guarda-o caso seja o melhor encontrado e continua a procurar
   				   	(setf melhor-solucao (escolhe-melhor (car estados) melhor-solucao heuristica))
   				   	(tree-search (cdr estados)))
@@ -95,9 +94,12 @@
   				   		  (index 0)
   				   		  (h most-positive-fixnum)
   				   		  (temp-h 0))
+  				   		; ao procurarmos os beam-width melhor estados evitamos ordenar todos os sucessores
+  				   		;  podem ser bastantes, especialmente no 50x10
   				   		(dotimes (i (min beam-width (length sucessores)))
   				   			(dotimes (j (length sucessores))
 				   				(setf temp-h (funcall heuristica (nth j sucessores)))
+				   				; queremos percorrer a lista e guardar o indice do melhor estado
 				   				(when (< temp-h h)
 				   					(setf h temp-h)
 				   					(setf index j)))
@@ -105,33 +107,23 @@
 					   			(setf sucessores (remove-nth index sucessores))
 					   			(setf h most-positive-fixnum))
   				   		(setf estados (ordena-sucessores (append beam-sucessores (cdr estados)) heuristica))
-  				   		;(setf estados (append sucessores (cdr estados)))
-  				   		;(setf estados (ordena-sucessores estados (problema-heuristica problema)))
+  				   		; limitar o tamanho da lista de estados a considerar 
   				   		(when (< beam-width (length estados))
   				   			(setf estados (subseq estados 0 beam-width)))
   				   		(tree-search estados))))))
   	(tree-search (list (problema-estado-inicial problema))))))
 
-(defun remove-nth (n lst)
-  (labels ((walk-list (n lst idx)
-             (if (null lst)
-                 lst
-                 (if (= n idx)
-                     (walk-list n (cdr lst) (1+ idx))
-                     (cons (car lst) (walk-list n (cdr lst) (1+ idx)))))))
-    (walk-list n lst 0)))
+
 
 (defun procura-com-corte (problema tempo-inicio)
 	(let* ((objectivo? (problema-objectivo? problema))
 		  (heuristica (problema-heuristica problema))
 		  (melhor-solucao (sonda-heuristica problema))
 		  (melhor-valor (funcall heuristica melhor-solucao)))
-	;(format t "melhor valor: ~d~%" melhor-valor)
 	(labels (
 		(tree-search (estados)
 			(cond ((or (< (- 300 (tempo-passado tempo-inicio)) 0.5) (null estados)) melhor-solucao)
 				   ((funcall objectivo? (car estados))
-				   	;(format t "Objectivo~%")
 				   	(let ((valor (funcall heuristica (car estados))))
 				   		(when (< valor melhor-valor)
 				   			(setf melhor-valor valor)
@@ -139,24 +131,19 @@
 				   	(tree-search (cdr estados)))
 				   (t
 				   	(let ((sucessores (problema-gera-sucessores problema (car estados))))
+				   		; apenas considera estados cuja heuristica seja melhor 'a da solucao ja' encontrada
+				   		; factor 1.8 e' relativo ao pessimismo da heuristica
 				   		(setf estados (filtra-estados (append sucessores (cdr estados)) (* melhor-valor 1.8) heuristica))
 				   		(setf estados (ordena-sucessores estados heuristica))
 				   		(tree-search estados))))))
 	(tree-search (list (problema-estado-inicial problema))))))
 
-(defun escolhe-melhor (estado1 estado2 heuristica)
-	(cond ((null estado1) estado2)
-		   ((null estado2) estado1)
-		   ((< (funcall heuristica estado1) (funcall heuristica estado2)) estado1)
-		   (t estado2)))
-
 ; Baseado na funcao profundidade-primeira disponibilizada em procura.lisp
 ; BF-BT (+/-)
 (defun procura-teste (problema profundidade-maxima)
 	"Faz procura sistematica (profundidade-primeiro) ate' 'a profundidade-maxima
-	e guarda todos os estados desta profundidade. De seguida corre o ILDS no estado com melhor
-	valor de f.
-	Correr ILDS e' equivalente a fazer o melhor caminho segundo a heuristica"
+	e guarda todos os estados desta profundidade. De seguida lanca uma sonda que escolhe
+	o caminho segundo a heuristica no estado com melhor valor de f."
   (let ((objectivo? (problema-objectivo? problema))
   		(estados nil))
 
@@ -186,24 +173,11 @@
       
       (procura-prof (problema-estado-inicial problema) nil 0)
       (setf estados (ordena-sucessores estados (problema-heuristica problema)))
-      ;(format t "~S~%" estados)
       (sonda-heuristica (cria-problema
       					(car estados) (problema-operadores problema)
       					:objectivo? (problema-objectivo? problema)
       					:heuristica (problema-heuristica problema)
       					:custo (always 0))))))
-
-(defun ordena-sucessores (sucessores heuristica)
-	"Ordena sucessores segundo a heuristica passada"
-	(sort sucessores #'(lambda (x y) (< (funcall heuristica x) (funcall heuristica y)))))
-
-
-(defun total-tasks (state)
-	"Conta numero total de tarefas ainda por atribuir tempo de inicio"
-	(let ((totalTasks 0))
-		(dolist (job (job-shop-state-jobs state))
-			(setf totalTasks (+ totalTasks (length (job-shop-job-tasks job)))))
-		totalTasks))
 
 ;JobShop Operators
 (defun operador (state)
@@ -249,12 +223,10 @@
 (defun custo (estado)
 	"Funcao custo: Devolve o tempo ma'ximo ocupado pelas tarefas atribuidas"
 	(job-shop-state-cost estado))
-	;(let ((max 0))
-	;	(dotimes (i (array-dimension (job-shop-state-machines.start.time estado) 0))
-	;		(let ((valor (aref (job-shop-state-machines.start.time estado) i)))
-	;			(when (> valor max)
-	;				(setf max valor))))
-	;	max))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Heuristicas
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun heuristica (estado)
 	"heuristica optimista:
@@ -412,6 +384,7 @@
 	(+ tempo.atribuido (/ (+ restante1 restante2 totalTasksTime) 3))))
 
 (defun calendarizacao (problema-job-shop estrategia)
+	"Implementacao da interface referida no enunciado"
 	(let ((problema (cria-problema (cria-estado problema-job-shop) (list #'operador)
 						:objectivo? #'estado-objectivo
 						:heuristica #'heuristica-alternativa8
@@ -428,27 +401,30 @@
 				; ainda nao esta' decidido
 				(beam-search problema 10 tempo-inicio))
 			((string-equal estrategia "a*.melhor.heuristica")
+				; e' necessario fazer estes sets uma vez que ao usar a funcao procura do ficheiro procura.lisp
+				;  nao temos acesso ao valor de *nos-expandidos ou gerados
 				(setf temp (procura problema "a*"))
-				(setf *nos-expandidos* (car (cdr (cdr temp))))
-				(setf *nos-gerados* (car (cdr (cdr (cdr temp)))))
+				;(setf *nos-expandidos* (car (cdr (cdr temp))))
+				;(setf *nos-gerados* (car (cdr (cdr (cdr temp)))))
 				(car (last (car temp))))
 			((string-equal estrategia "a*.melhor.heuristica.alternativa")
+				; escolher heuristica alternativa
 				(setf (problema-heuristica problema) #'heuristica-alternativa)
 				(setf temp (procura problema "a*"))
-				(setf *nos-expandidos* (car (cdr (cdr temp))))
-				(setf *nos-gerados* (car (cdr (cdr (cdr temp)))))
+				;(setf *nos-expandidos* (car (cdr (cdr temp))))
+				;(setf *nos-gerados* (car (cdr (cdr (cdr temp)))))
 				(car (last (car temp))))
 			((string-equal estrategia "sondagem.iterativa")
 				(sondagem-iterativa problema))
 			((string-equal estrategia "ILDS")
 				(improved-lds problema (total-tasks (problema-estado-inicial problema))))
 			((string-equal estrategia "abordagem.alternativa")
-				; ainda nao esta decidido
-				(procura-com-corte problema tempo-inicio)))))
-			;(output solucao))))
+				; ainda nao esta decidida a largura
+				(beam-search problema 10 tempo-inicio))
 			(if (null solucao)
 				solucao
-				(list (output solucao) (tempo-passado tempo-inicio) (- (get-internal-run-time) tempo-inicio-run) *nos-expandidos* *nos-gerados* (custo solucao))))))
+				(output solucao))))))))
+				;(list (output solucao) (tempo-passado tempo-inicio) (- (get-internal-run-time) tempo-inicio-run) *nos-expandidos* *nos-gerados* (custo solucao))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes auxiliares
@@ -492,7 +468,7 @@
 		estado-melhor))
 
 (defun tempo-passado (tempo-inicio)
-	"Devolve a quantidade de tempo real que passou desde tempo-inicio"
+	"Devolve a quantidade de tempo real que passou desde tempo-inicio em segundos"
 	(/ (- (get-internal-real-time) tempo-inicio) internal-time-units-per-second))
 
 (defun filtra-estados (estados valor heuristica)
@@ -502,21 +478,42 @@
 				(setf resultado (cons estado resultado))))
 		resultado))
 
-;(defun filtra-estados (estados valor heuristica)
-;	(let ((resultado nil)
-;		  (cortes 0))
-;		(dolist (estado estados)
-;			(if (< (funcall heuristica estado) valor)
-;				(setf resultado (cons estado resultado))
-;				(incf cortes)))
-;		(format t "~d~%" cortes)
-;		resultado))
+(defun remove-nth (n lst)
+	"Remove o elemento n de uma lista"
+  (labels ((walk-list (n lst idx)
+             (if (null lst)
+                 lst
+                 (if (= n idx)
+                     (walk-list n (cdr lst) (1+ idx))
+                     (cons (car lst) (walk-list n (cdr lst) (1+ idx)))))))
+    (walk-list n lst 0)))
 
 (defun funcao-hash (estado)
 	(let ((resultado nil))
 		(dolist (job (job-shop-state-jobs estado))
 			(setf resultado (cons (length (job-shop-job-tasks job)) resultado)))
 		(sxhash (cons (custo estado) resultado))))
+
+(defun escolhe-melhor (estado1 estado2 heuristica)
+	"Recebe dois estados e a heuristica e devolve o melhor
+	Pode ser aplicado a qualquer dois valores se passar uma funcao
+	de avaliacao pela heuristica"
+	(cond ((null estado1) estado2)
+		   ((null estado2) estado1)
+		   ((< (funcall heuristica estado1) (funcall heuristica estado2)) estado1)
+		   (t estado2)))
+
+(defun ordena-sucessores (sucessores heuristica)
+	"Ordena sucessores segundo a heuristica passada"
+	(sort sucessores #'(lambda (x y) (< (funcall heuristica x) (funcall heuristica y)))))
+
+
+(defun total-tasks (state)
+	"Conta numero total de tarefas ainda por atribuir tempo de inicio"
+	(let ((totalTasks 0))
+		(dolist (job (job-shop-state-jobs state))
+			(setf totalTasks (+ totalTasks (length (job-shop-job-tasks job)))))
+		totalTasks))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes para a copia do estado
@@ -549,9 +546,3 @@
 		:machine.nr (job-shop-task-machine.nr task)
 		:duration (job-shop-task-duration task)
 		:start.time (job-shop-task-start.time task)))
-
-;(resolve-problema (make-array '(20 20)) 'profundidade)
-
-;(improved-lds (cria-problema (make-array '(4 4)) (list #'coloca-rainha) :objectivo? #'estado-objectivo? :heuristica #'heuristica))
-;(sondagem-iterativa (cria-problema (cria-estado a) (list #'operador) :objectivo? #'estado-objectivo))
-;(improved-lds (cria-problema (cria-estado a) (list #'operador) :objectivo? #'estado-objectivo :heuristica #'heuristica) 4)
