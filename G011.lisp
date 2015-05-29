@@ -420,7 +420,7 @@
 				(improved-lds problema (total-tasks (problema-estado-inicial problema))))
 			((string-equal estrategia "abordagem.alternativa")
 				; ainda nao esta decidida a largura
-				(beam-search problema 10 tempo-inicio))
+				(beam-search problema 10 tempo-inicio)))))
 			(if (null solucao)
 				solucao
 				(output solucao))))))))
