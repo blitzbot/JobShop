@@ -208,8 +208,6 @@
 						(setf (job-shop-state-cost newState) (max (job-shop-state-cost newState) new.time))
 						(setf (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask))
 							(append (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask)) (list newTask)))
-						; TODO: seria melhor fazer so nconc
-						;(nconc (aref (job-shop-state-taskSequence newState) (job-shop-task-job.nr newTask)) (list newTask))
 						(setf sucessores (cons newState sucessores))))))
 		sucessores))
 
@@ -291,7 +289,6 @@
 
 (defun heuristica-alternativa4 (estado)
 	(let ((maquinas (make-array (length (job-shop-state-machines.start.time estado)) :initial-element 0))
-		  ;(jobs (make-array (length (job-shop-state-jobs estado)) :initial-element 0))
 		  (tempo.atribuido (custo estado))
 		  (restante 0)
 		  (totalTasksTime 0))
@@ -299,18 +296,13 @@
 		(dolist (task (job-shop-job-tasks job))
 			(incf (aref maquinas (job-shop-task-machine.nr task)) (job-shop-task-duration task))
 			(incf totalTasksTime (job-shop-task-duration task))))
-			;(incf (aref jobs (job-shop-task-job.nr task)) (job-shop-task-duration task))))
 	(dotimes (i (length maquinas))
 			(when (< restante (aref maquinas i))
 				(setf restante (aref maquinas i))))
-	;(dotimes (i (length jobs))
-	;		(when (< restante (aref jobs i))
-	;			(setf restante (aref jobs i))))
 	(+ tempo.atribuido (/ (+ restante totalTasksTime) 2))))
 
 (defun heuristica-alternativa5 (estado)
 	(let ((maquinas (make-array (length (job-shop-state-machines.start.time estado)) :initial-element 0))
-		  ;(jobs (make-array (length (job-shop-state-jobs estado)) :initial-element 0))
 		  (tempo.atribuido (custo estado))
 		  (restante 0)
 		  (totalTasksTime 0))
@@ -318,13 +310,9 @@
 		(dolist (task (job-shop-job-tasks job))
 			(incf (aref maquinas (job-shop-task-machine.nr task)) (job-shop-task-duration task))
 			(incf totalTasksTime (job-shop-task-duration task))))
-			;(incf (aref jobs (job-shop-task-job.nr task)) (job-shop-task-duration task))))
 	(dotimes (i (length maquinas))
 			(when (< restante (aref maquinas i))
 				(setf restante (aref maquinas i))))
-	;(dotimes (i (length jobs))
-	;		(when (< restante (aref jobs i))
-	;			(setf restante (aref jobs i))))
 	(+ tempo.atribuido (* 0.55 restante) (* 0.45 totalTasksTime))))
 
 (defun heuristica-alternativa6 (estado)
@@ -393,12 +381,10 @@
 						:custo (always 0)))
 		  (*nos-expandidos* 0)
 		  (*nos-gerados* 0)
-		  ;(tempo-inicio-run (get-internal-run-time))
 		  (tempo-inicio (get-internal-real-time))
 		  (temp nil))
 		(let ((solucao 
 			(cond ((string-equal estrategia "melhor.abordagem")
-				; ainda nao esta' decidido
 				(beam-search problema 10 tempo-inicio))
 			((string-equal estrategia "a*.melhor.heuristica")
 				; e' necessario fazer estes sets uma vez que ao usar a funcao procura do ficheiro procura.lisp
@@ -419,7 +405,6 @@
 			((string-equal estrategia "ILDS")
 				(improved-lds problema (total-tasks (problema-estado-inicial problema))))
 			((string-equal estrategia "abordagem.alternativa")
-				; ainda nao esta decidida a largura
 				(beam-search problema 10 tempo-inicio)))))
 			(if (null solucao)
 				solucao
