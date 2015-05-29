@@ -269,7 +269,7 @@
 		(dotimes (i (length jobs))
 			(when (< restante (aref jobs i))
 				(setf restante (aref jobs i))))
-		(+ (* tempo.atribuido 0.5) (* restante 0.3) (* (total-tasks estado) 0.2))))
+		(+ tempo.atribuido (* restante 0.3) (* (total-tasks estado) 0.2))))
 
 (defun heuristica-alternativa3 (estado)
 	(let ((maquinas (make-array (length (job-shop-state-machines.start.time estado)) :initial-element 0))
@@ -393,7 +393,7 @@
 						:custo (always 0)))
 		  (*nos-expandidos* 0)
 		  (*nos-gerados* 0)
-		  (tempo-inicio-run (get-internal-run-time))
+		  ;(tempo-inicio-run (get-internal-run-time))
 		  (tempo-inicio (get-internal-real-time))
 		  (temp nil))
 		(let ((solucao 
@@ -409,7 +409,7 @@
 				(car (last (car temp))))
 			((string-equal estrategia "a*.melhor.heuristica.alternativa")
 				; escolher heuristica alternativa
-				(setf (problema-heuristica problema) #'heuristica-alternativa)
+				(setf (problema-heuristica problema) #'heuristica-alternativa4)
 				(setf temp (procura problema "a*"))
 				;(setf *nos-expandidos* (car (cdr (cdr temp))))
 				;(setf *nos-gerados* (car (cdr (cdr (cdr temp)))))
@@ -423,7 +423,7 @@
 				(beam-search problema 10 tempo-inicio)))))
 			(if (null solucao)
 				solucao
-				(output solucao))))))))
+				(output solucao)))))
 				;(list (output solucao) (tempo-passado tempo-inicio) (- (get-internal-run-time) tempo-inicio-run) *nos-expandidos* *nos-gerados* (custo solucao))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -514,6 +514,13 @@
 		(dolist (job (job-shop-state-jobs state))
 			(setf totalTasks (+ totalTasks (length (job-shop-job-tasks job)))))
 		totalTasks))
+
+(defun ordena-tarefas (jobs)
+	"Ordena tarefas por ordem de task.nr
+	Nao e' dito que as tarefas vem ordenadas"
+	(dolist (job jobs)
+		(sort (job-shop-job-tasks job) #'(lambda (t1 t2) (< (job-shop-task-task.nr t1) (job-shop-task-task.nr t2)))))
+	jobs)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes para a copia do estado

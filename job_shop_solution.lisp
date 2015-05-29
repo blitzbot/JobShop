@@ -433,7 +433,7 @@
 				(setf *nos-gerados* (car (cdr (cdr (cdr temp)))))
 				(car (last (car temp))))
 			((string-equal estrategia "a*.melhor.heuristica.alternativa")
-				(setf (problema-heuristica problema) #'heuristica-alternativa)
+				(setf (problema-heuristica problema) #'heuristica-alternativa4)
 				(setf temp (procura problema "a*"))
 				(setf *nos-expandidos* (car (cdr (cdr temp))))
 				(setf *nos-gerados* (car (cdr (cdr (cdr temp)))))
@@ -444,7 +444,7 @@
 				(improved-lds problema (total-tasks (problema-estado-inicial problema))))
 			((string-equal estrategia "abordagem.alternativa")
 				; ainda nao esta decidido
-				(procura-com-corte problema tempo-inicio)))))
+				(beam-search problema 10 tempo-inicio)))))
 			;(output solucao))))
 			(if (null solucao)
 				solucao
@@ -460,7 +460,8 @@
 		:taskSequence (make-array (job-shop-problem-n.jobs problema) :initial-element '())
 		:machines.start.time (make-array (job-shop-problem-n.machines problema) :initial-element 0)
 		:jobs.start.time (make-array (job-shop-problem-n.jobs problema) :initial-element 0)
-		:jobs (job-shop-problem-jobs problema)
+		;:jobs (job-shop-problem-jobs problema)
+		:jobs (ordena-tarefas (job-shop-problem-jobs problema))
 		:cost 0))
 
 (defun pop-task (state job.index)
@@ -502,21 +503,16 @@
 				(setf resultado (cons estado resultado))))
 		resultado))
 
-;(defun filtra-estados (estados valor heuristica)
-;	(let ((resultado nil)
-;		  (cortes 0))
-;		(dolist (estado estados)
-;			(if (< (funcall heuristica estado) valor)
-;				(setf resultado (cons estado resultado))
-;				(incf cortes)))
-;		(format t "~d~%" cortes)
-;		resultado))
-
 (defun funcao-hash (estado)
 	(let ((resultado nil))
 		(dolist (job (job-shop-state-jobs estado))
 			(setf resultado (cons (length (job-shop-job-tasks job)) resultado)))
 		(sxhash (cons (custo estado) resultado))))
+
+(defun ordena-tarefas (jobs)
+	(dolist (job jobs)
+		(sort (job-shop-job-tasks job) #'(lambda (t1 t2) (< (job-shop-task-task.nr t1) (job-shop-task-task.nr t2)))))
+	jobs)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Funcoes para a copia do estado
