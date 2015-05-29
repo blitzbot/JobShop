@@ -409,7 +409,7 @@
 				(car (last (car temp))))
 			((string-equal estrategia "a*.melhor.heuristica.alternativa")
 				; escolher heuristica alternativa
-				(setf (problema-heuristica problema) #'heuristica-alternativa4)
+				(setf (problema-heuristica problema) #'heuristica-alternativa5)
 				(setf temp (procura problema "a*"))
 				;(setf *nos-expandidos* (car (cdr (cdr temp))))
 				;(setf *nos-gerados* (car (cdr (cdr (cdr temp)))))
